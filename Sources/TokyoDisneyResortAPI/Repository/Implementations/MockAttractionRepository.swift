@@ -11,12 +11,12 @@ import Vapor
 /// テスト用のモックリポジトリ
 struct MockAttractionRepository: AttractionRepositoryProtocol {
     /// アトラクション基本情報を取得するカスタムロジック
-    var fetchAttractionBasicInfoHandler: @Sendable (ParkType) async throws -> [AttractionBasicInfo] = { _ in
+    var fetchAttractionBasicInfoHandler: @Sendable (ParkType) async throws -> [Attraction] = { _ in
         return [] // デフォルトは空配列
     }
     
     /// アトラクション運営状況を取得するカスタムロジック
-    var fetchOperatingStatusHandler: @Sendable (ParkType, Request) async throws -> [AttractionOperatingStatus] = { _, _ in
+    var fetchOperatingStatusHandler: @Sendable (ParkType, Request) async throws -> [Attraction] = { _, _ in
         return [] // デフォルトは空配列
     }
     
@@ -35,11 +35,11 @@ struct MockAttractionRepository: AttractionRepositoryProtocol {
     
     // プロトコル実装メソッド - 各メソッドは対応するハンドラに処理を委譲
     
-    func fetchAttractionBasicInfo(parkType: ParkType) async throws -> [AttractionBasicInfo] {
+    func fetchAttractionBasicInfo(parkType: ParkType) async throws -> [Attraction] {
         try await fetchAttractionBasicInfoHandler(parkType)
     }
     
-    func fetchOperatingStatus(parkType: ParkType, request: Request) async throws -> [AttractionOperatingStatus] {
+    func fetchOperatingStatus(parkType: ParkType, request: Request) async throws -> [Attraction] {
         try await fetchOperatingStatusHandler(parkType, request)
     }
     

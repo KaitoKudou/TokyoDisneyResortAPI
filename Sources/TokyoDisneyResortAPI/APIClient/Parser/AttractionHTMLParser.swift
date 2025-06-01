@@ -13,7 +13,7 @@ struct AttractionHTMLParser: Sendable {
     /// - Parameter htmlString: 東京ディズニーリゾートのWebサイトから取得したHTML文字列
     /// - Returns: 抽出されたアトラクション基本情報
     /// - Throws: HTMLパースエラー
-    func parseAttractions(from htmlString: String) throws -> [AttractionBasicInfo] {
+    func parseAttractions(from htmlString: String) throws -> [Attraction] {
         do {
             let document = try SwiftSoup.parse(htmlString)
             return try extractAttractions(from: document)
@@ -25,8 +25,8 @@ struct AttractionHTMLParser: Sendable {
     }
     
     /// HTML文書からアトラクション情報を抽出する
-    private func extractAttractions(from document: Document) throws -> [AttractionBasicInfo] {
-        var attractions = [AttractionBasicInfo]()
+    private func extractAttractions(from document: Document) throws -> [Attraction] {
+        var attractions = [Attraction]()
         
         // data-categorize属性を持つli要素を探す
         let attractionLiItems = try document.select("li[data-categorize]")
@@ -60,8 +60,8 @@ struct AttractionHTMLParser: Sendable {
                 let linkElement = try element.select("a").first()
                 let detailURL = try linkElement?.attr("href") ?? "URL不明"
                 
-                // AttractionBasicInfoを作成
-                let attraction = AttractionBasicInfo(
+                // Attraction（基本情報のみ）を作成
+                let attraction = Attraction(
                     area: area,
                     name: cleanedName,
                     iconTags: iconTags,

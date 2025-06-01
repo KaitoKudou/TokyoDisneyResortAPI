@@ -32,12 +32,12 @@ struct AttractionRepository: AttractionRepositoryProtocol {
     
     /// https://www.tokyodisneyresort.jp/tdl/attraction.html または
     /// https://www.tokyodisneyresort.jp/tds/attraction.html の情報を取得
-    private func fetchAttractionBasicInfo(parkType: ParkType) async throws -> [AttractionBasicInfo] {
+    private func fetchAttractionBasicInfo(parkType: ParkType) async throws -> [Attraction] {
         do {
             // APIクライアントからHTMLを取得
             let htmlString = try await apiClient.fetchAttractionHTML(parkType: parkType)
             
-            // HTML 解析で直接 AttractionBasicInfo を抽出
+            // HTML 解析でAttraction（基本情報のみ）を抽出
             let attractions = try htmlParser.parseAttractions(from: htmlString)
             
             return attractions
@@ -50,16 +50,28 @@ struct AttractionRepository: AttractionRepositoryProtocol {
     }
     
     /// JSONからアトラクション運営状況を取得
-    private func fetchOperatingStatus(parkType: ParkType, request: Request) async throws -> [AttractionOperatingStatus] {
+    private func fetchOperatingStatus(parkType: ParkType, request: Request) async throws -> [Attraction] {
         do {
             // API クライアントからアトラクション運営状況データを取得
             let jsonData = try await apiClient.fetchOperatingStatus(parkType: parkType)
-            let result = try JSONDecoder().decode([AttractionOperatingStatus].self, from: jsonData)
             
-            return result
+            // デバッグ用にJSONデータをログに出力
+            if let jsonString = String(data: jsonData, encoding: .utf8) {
+                request.logger.debug("Received JSON: \(String(jsonString.prefix(100)))...")
+            }
+            
+            // JSONを直接Attractionモデルにデコードするためのカスタムデコーダーが必要
+            let decoder = JSONDecoder()
+            do {
+                let operatingStatusArray = try decoder.decode([Attraction].self, from: jsonData)
+                request.logger.info("Successfully decoded \(operatingStatusArray.count) attractions")
+                return operatingStatusArray
+            } catch let decodingError {
+                request.logger.error("Failed to decode attractions: \(decodingError)")
+                throw decodingError
+            }
         } catch {
             request.logger.error("Failed to fetch operating status: \(error.localizedDescription)")
-            
             throw APIError.decodingFailed
         }
     }

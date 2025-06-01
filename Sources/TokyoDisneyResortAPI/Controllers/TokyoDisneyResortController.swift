@@ -36,10 +36,9 @@ struct TokyoDisneyResortController: RouteCollection {
             )
             
             // JSONにエンコードしてレスポンスを作成
-            let jsonData = try JSONEncoder().encode(attractions)
             let response = Response(status: HTTPResponseStatus.ok)
             response.headers.contentType = .json
-            response.body = Response.Body(data: jsonData)
+            try response.content.encode(attractions, as: .json)
             
             return response
         } catch {
