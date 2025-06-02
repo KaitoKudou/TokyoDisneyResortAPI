@@ -70,43 +70,6 @@ struct AttractionDataMapper: Sendable {
             }
             return true
         }
-        
-        
-//        for status in operatingStatusList {
-//            // facilityIDが存在し、detailURLに含まれているかを確認
-//            if let facilityID = status.facilityID, basicInfo.detailURL.contains(facilityID) {
-//                return status
-//            }
-//        }
-//        // マッチする運営状況が見つからなかった場合はnilを返す
-//        return nil
-                
-        
-        
-        // 名前がマッチする運営状況を検索
-//        return operatingStatusList.first {
-//            // facilityNameとアトラクション名を正規化して比較
-//            guard let facilityID = $0.facilityID else {
-//                return false
-//            }
-//            guard basicInfo.detailURL.contains(facilityID) else {
-//                return false
-//            }
-//            guard let facilityName = $0.facilityName else {
-//                return false
-//            }
-//            
-//            return true
-////            let normalizedFacilityName = facilityName
-////                .replacingOccurrences(of: " ", with: "")
-////                .lowercased()
-////            let normalizedAttractionName = basicInfo.name
-////                .replacingOccurrences(of: " ", with: "")
-////                .lowercased()
-//            
-////            return normalizedFacilityName.contains(normalizedAttractionName) ||
-////                   normalizedAttractionName.contains(normalizedFacilityName)
-//        }
     }
     
     /// データ取得に失敗した場合のフォールバックアトラクションデータを生成

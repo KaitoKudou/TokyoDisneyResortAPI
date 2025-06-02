@@ -11,7 +11,7 @@ import Vapor
 import Dependencies
 
 struct TokyoDisneyResortController: RouteCollection {
-    @Dependency(\.attractionRepository) private var repository
+    @Dependency(AttractionRepository.self) private var repository
     
     func boot(routes: any RoutesBuilder) throws {
         let myRoutes = routes.grouped("tokyo_disney_resort")
@@ -31,8 +31,8 @@ struct TokyoDisneyResortController: RouteCollection {
         do {
             // リポジトリから統合されたアトラクション情報を取得
             let attractions = try await repository.getIntegratedAttractionInfo(
-                parkType: parkType, 
-                request: request
+                parkType, 
+                request
             )
             
             // JSONにエンコードしてレスポンスを作成
