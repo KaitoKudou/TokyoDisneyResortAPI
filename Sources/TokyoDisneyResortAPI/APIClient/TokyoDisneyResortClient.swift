@@ -20,11 +20,13 @@ struct TokyoDisneyResortClient: Sendable {
     }
     
     /// アトラクション情報のHTMLを取得する
-    /// - Parameter parkType: パークの種類（TDL/TDS）
+    /// - Parameters:
+    ///   - parkType: パークの種類（TDL/TDS）
+    ///   - facilityType: 施設の種類（デフォルトはアトラクション）
     /// - Returns: HTML文字列
     /// - Throws: 通信エラーやデコードエラー
-    func fetchAttractionHTML(parkType: ParkType) async throws -> String {
-        let request = TokyoDisneyResortRequestBuilder(parkType: parkType).buildURLRequest()
+    func fetchAttractionHTML(parkType: ParkType, facilityType: FacilityType) async throws -> String {
+        let request = TokyoDisneyResortRequestBuilder(parkType: parkType, facilityType: facilityType).buildURLRequest()
         
         do {
             let (data, response) = try await urlSession.data(for: request)
@@ -48,20 +50,30 @@ struct TokyoDisneyResortClient: Sendable {
         }
     }
     
-    /// アトラクションの運営状況を取得する
-    /// - Parameter parkType: パークの種類（TDL/TDS）
+    /// 施設（アトラクションやグリーティング）の運営状況を取得する
+    /// - Parameters:
+    ///   - parkType: パークの種類（TDL/TDS）
+    ///   - facilityType: 施設の種類（アトラクションまたはグリーティング）
     /// - Returns: 運営状況のJSONデータ
     /// - Throws: 通信エラーやデコードエラー
-    func fetchOperatingStatus(parkType: ParkType) async throws -> Data {
-        // クライアントの設定
-        var headers = HTTPHeaders()
-        headers.add(name: "User-Agent", value: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.4 Safari/605.1.15")
-        headers.add(name: "Accept", value: "application/json")
+    func fetchOperatingStatus(parkType: ParkType, facilityType: FacilityType) async throws -> Data {
+        // アトラクションの場合は、専用のJSONエンドポイントを使用
+        // リクエストビルダーを使用してリクエストの基本設定を取得
+        let builder = TokyoDisneyResortRequestBuilder(parkType: parkType, facilityType: facilityType)
+        let baseRequest = builder.buildURLRequest()
         
-        var request = URLRequest(url: URL(string: "https://www.tokyodisneyresort.jp/_/realtime/\(parkType.rawValue)_attraction.json")!)
+        // アトラクションの運営状況のJSONエンドポイントURL
+        let jsonURL = URL(string: "https://www.tokyodisneyresort.jp/_/realtime/\(parkType.rawValue)_\(facilityType.rawValue).json")!
         
-        // 個別にヘッダーを設定
-        request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.4 Safari/605.1.15", forHTTPHeaderField: "User-Agent")
+        // JSONエンドポイントへのリクエスト
+        var request = URLRequest(url: jsonURL)
+        
+        // ベースリクエストからヘッダーを引き継ぐ
+        baseRequest.allHTTPHeaderFields?.forEach { key, value in
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        
+        // JSONを明示的に要求するヘッダーを設定
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         
         do {

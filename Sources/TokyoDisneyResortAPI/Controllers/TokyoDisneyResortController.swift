@@ -17,6 +17,7 @@ struct TokyoDisneyResortController: RouteCollection {
         let myRoutes = routes.grouped("tokyo_disney_resort")
         // ParkType をパスパラメータとして受け取る
         myRoutes.get(":parkType", "attraction", use: getAttractionStatus)
+        myRoutes.get(":parkType", "greeting", use: getGreetingStatus)
     }
     
     /// ParkType に応じたアトラクション情報を返す
@@ -46,6 +47,39 @@ struct TokyoDisneyResortController: RouteCollection {
             return Response(
                 status: HTTPResponseStatus.internalServerError,
                 body: Response.Body(string: "Failed to get attraction data: \(error.localizedDescription)")
+            )
+        }
+    }
+    
+    /// ParkType に応じたグリーティング情報を返す
+    func getGreetingStatus(request: Request) async throws -> Response {
+        // URL から ParkType を取得
+        guard let parkTypeString = request.parameters.get("parkType"),
+              let parkType = ParkType(rawValue: parkTypeString) else {
+            return Response(status: HTTPResponseStatus.badRequest,
+                           body: Response.Body(string: "Invalid park type. Use 'tdl' for Tokyo Disneyland or 'tds' for Tokyo DisneySea"))
+        }
+        
+        do {
+            // リポジトリからグリーティング情報を取得
+            let greetings = try await repository.getGreetingInfo(
+                parkType,
+                request
+            )
+            
+            // JSONにエンコードしてレスポンスを作成
+            let response = Response(status: HTTPResponseStatus.ok)
+            response.headers.contentType = .json
+            
+            try response.content.encode(greetings, as: .json)
+            request.logger.info("Returned \(greetings.count) greetings in full format")
+            
+            return response
+        } catch {
+            request.logger.error("Failed to get greeting data: \(error)")
+            return Response(
+                status: HTTPResponseStatus.internalServerError,
+                body: Response.Body(string: "Failed to get greeting data: \(error.localizedDescription)")
             )
         }
     }

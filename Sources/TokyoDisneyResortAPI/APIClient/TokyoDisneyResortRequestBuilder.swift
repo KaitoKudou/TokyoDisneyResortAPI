@@ -9,9 +9,11 @@ import Foundation
 
 struct TokyoDisneyResortRequestBuilder: TokyoDisneyResortRequest {
     var parkType: ParkType
+    var facilityType: FacilityType
     
-    init(parkType: ParkType) {
+    init(parkType: ParkType, facilityType: FacilityType = .attraction) {
         self.parkType = parkType
+        self.facilityType = facilityType
     }
     
     func buildURLRequest() -> URLRequest {

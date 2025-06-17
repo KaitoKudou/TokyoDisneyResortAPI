@@ -11,6 +11,7 @@ enum HTMLParserError: Error {
     case parseError
     case networkError
     case noAttractionFound
+    case noGreetingFound
     
     var localizedDescription: String {
         switch self {
@@ -22,6 +23,8 @@ enum HTMLParserError: Error {
             return "ネットワークエラーが発生しました"
         case .noAttractionFound:
             return "アトラクション情報が見つかりませんでした"
+        case .noGreetingFound:
+            return "グリーティング情報が見つかりませんでした"
         }
     }
 }

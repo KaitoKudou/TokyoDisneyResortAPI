@@ -16,6 +16,9 @@ protocol TokyoDisneyResortRequest {
     
     // パークタイプ (tdl または tds)
     var parkType: ParkType { get }
+    
+    // 施設タイプ (アトラクションまたはグリーティング)
+    var facilityType: FacilityType { get }
 }
 
 // パークタイプを表す列挙型
@@ -24,10 +27,26 @@ enum ParkType: String {
     case tds // 東京ディズニーシー
 }
 
+// 施設タイプを表す列挙型
+enum FacilityType: String {
+    case attraction // アトラクション情報
+    case greeting   // グリーティング情報
+}
+
 extension TokyoDisneyResortRequest {
-    // パークタイプに応じたURLを生成
+    // パークタイプと施設タイプに応じたURLを生成
     var baseURL: URL {
-        let urlString = "https://www.tokyodisneyresort.jp/\(parkType.rawValue)/attraction.html"
+        let urlString: String
+        
+        switch facilityType {
+        case .attraction:
+            // HTMLのエンドポイント（スクレイピング用）
+            urlString = "https://www.tokyodisneyresort.jp/\(parkType.rawValue)/attraction.html"
+            
+        case .greeting:
+            // グリーティング情報のJSONエンドポイント
+            urlString = "https://www.tokyodisneyresort.jp/\(parkType.rawValue)/greeting.html"
+        }
         
         // URLが無効な場合はfatalErrorを発生
         guard let url = URL(string: urlString) else {
