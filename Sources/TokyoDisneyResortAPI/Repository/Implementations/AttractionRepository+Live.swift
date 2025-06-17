@@ -39,8 +39,7 @@ extension AttractionRepository: DependencyKey {
                 
                 return attractions
             } catch HTMLParserError.noAttractionFound {
-                // アトラクションデータが見つからない場合、フォールバックデータを返す
-                return dataMapper.createFallbackAttractions()
+                throw HTMLParserError.noAttractionFound
             } catch {
                 throw error
             }
@@ -83,9 +82,9 @@ extension AttractionRepository: DependencyKey {
                 let attractions = try greetingHTMLParser.parseGreetings(from: htmlString)
                 
                 return attractions
-            } catch HTMLParserError.noAttractionFound {
+            } catch HTMLParserError.noGreetingFound {
                 request.logger.warning("No greeting data found in HTML")
-                return []
+                throw HTMLParserError.noGreetingFound
             } catch {
                 request.logger.error("Failed to fetch greeting basic info: \(error.localizedDescription)")
                 throw error

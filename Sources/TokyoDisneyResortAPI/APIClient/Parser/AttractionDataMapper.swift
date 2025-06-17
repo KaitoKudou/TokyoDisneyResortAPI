@@ -71,32 +71,4 @@ struct AttractionDataMapper: Sendable {
             return true
         }
     }
-    
-    /// データ取得に失敗した場合のフォールバックアトラクションデータを生成
-    /// - Returns: ダミーのアトラクション基本情報リスト
-    func createFallbackAttractions() -> [Attraction] {
-        return [
-            Attraction(
-                area: "メディテレーニアンハーバー",
-                name: "ソアリン：ファンタスティック・フライト",
-                iconTags: ["ファストパス対象", "身長制限あり"],
-                imageURL: "https://www.example.com/soaring.jpg",
-                detailURL: "/attractions/soaring/"
-            ),
-            Attraction(
-                area: "アラビアンコースト",
-                name: "マジックランプシアター",
-                iconTags: ["雨の日でも安心"],
-                imageURL: "https://www.example.com/magiclamp.jpg",
-                detailURL: "/attractions/magiclamp/"
-            ),
-            Attraction(
-                area: "マーメイドラグーン",
-                name: "アリエルのプレイグラウンド",
-                iconTags: ["子供向け"],
-                imageURL: "https://www.example.com/ariel.jpg",
-                detailURL: "/attractions/ariel/"
-            )
-        ]
-    }
 }
