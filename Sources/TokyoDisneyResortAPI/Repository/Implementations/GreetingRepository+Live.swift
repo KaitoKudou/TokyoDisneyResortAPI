@@ -1,8 +1,8 @@
 //
-//  AttractionRepository+Live.swift
+//  GreetingRepository+Live.swift
 //  TokyoDisneyResortAPI
 //
-//  Created by 工藤 海斗 on 2025/06/01.
+//  Created by GitHub Copilot on 2025/06/18.
 //  Updated by GitHub Copilot on 2025/06/19.
 //
 
@@ -10,42 +10,42 @@ import Dependencies
 import Foundation
 import Vapor
 
-extension AttractionRepository: DependencyKey {
+extension GreetingRepository: DependencyKey {
     static var liveValue: Self {
         @Dependency(\.cacheStore) var cacheStore
         
-        let apiFetcher = APIFetcher<Attraction>()
-        let attractionHTMLParser: AttractionHTMLParser = .init()
-        let dataMapper: AttractionDataMapper = .init()
+        let apiFetcher = APIFetcher<Greeting>()
+        let greetingHTMLParser: GreetingHTMLParser = .init()
+        let greetingDataMapper: GreetingDataMapper = .init()
         
         // FacilityRepository プロトコルの実装
-        let facilityType: FacilityType = .attraction
+        let facilityType: FacilityType = .greeting
         let cacheExpirationTime: CacheExpirationTime = .minutes(10)
         
         @Sendable func cacheKey(for parkType: ParkType) -> String {
-            return "attractions_\(parkType.rawValue)"
+            return "greetings_\(parkType.rawValue)"
         }
         
         return .init(
             execute: { parkType, request in
                 // キャッシュからの取得を試みる
-                if let cachedAttractions = try await cacheStore.get(
-                    cacheKey(for: parkType),
-                    as: [Attraction].self,
+                if let cachedGreetings = try await cacheStore.get(
+                    cacheKey(for: parkType), 
+                    as: [Greeting].self, 
                     request: request
                 ) {
-                    request.logger.info("Using cached integrated attractions for \(parkType.rawValue)")
-                    return cachedAttractions
+                    request.logger.info("Using cached greeting info for \(parkType.rawValue)")
+                    return cachedGreetings
                 }
                 
-                request.logger.info("Fetching fresh attraction data for \(parkType.rawValue)")
+                request.logger.info("Fetching fresh greeting data for \(parkType.rawValue)")
                 
                 do {
                     // APIから基本情報と運営状況を取得
                     async let basicInfoTask = apiFetcher.fetchBasicInfo(
-                        parkType: parkType, 
+                        parkType: parkType,
                         facilityType: facilityType,
-                        parser: attractionHTMLParser
+                        parser: greetingHTMLParser
                     )
                     
                     async let operatingStatusTask = apiFetcher.fetchOperatingStatus(
@@ -58,7 +58,7 @@ extension AttractionRepository: DependencyKey {
                     let (basicInfoList, operatingStatusList) = try await (basicInfoTask, operatingStatusTask)
                     
                     // データを統合
-                    let attractions = dataMapper.integrateAttractionData(
+                    let greetings = greetingDataMapper.integrateGreetingData(
                         basicInfoList: basicInfoList,
                         operatingStatusList: operatingStatusList
                     )
@@ -66,14 +66,14 @@ extension AttractionRepository: DependencyKey {
                     // 統合データをキャッシュに保存
                     try await cacheStore.set(
                         cacheKey(for: parkType),
-                        to: attractions,
+                        to: greetings,
                         expiresIn: cacheExpirationTime,
                         request: request
                     )
                     
-                    return attractions
+                    return greetings
                 } catch {
-                    request.logger.error("Failed to fetch attraction data: \(error.localizedDescription)")
+                    request.logger.error("Failed to fetch greeting data: \(error.localizedDescription)")
                     throw error
                 }
             }

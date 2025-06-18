@@ -6,12 +6,12 @@
 //
 
 import Foundation
-import SwiftSoup
 import Vapor
 import Dependencies
 
 struct TokyoDisneyResortController: RouteCollection {
-    @Dependency(AttractionRepository.self) private var repository
+    @Dependency(AttractionRepository.self) private var attractionRepository
+    @Dependency(GreetingRepository.self) private var greetingRepository
     
     func boot(routes: any RoutesBuilder) throws {
         let myRoutes = routes.grouped("tokyo_disney_resort")
@@ -30,13 +30,11 @@ struct TokyoDisneyResortController: RouteCollection {
         }
         
         do {
-            // リポジトリから統合されたアトラクション情報を取得
-            let attractions = try await repository.getIntegratedAttractionInfo(
-                parkType, 
+            let attractions = try await attractionRepository.execute(
+                parkType,
                 request
             )
             
-            // JSONにエンコードしてレスポンスを作成
             let response = Response(status: HTTPResponseStatus.ok)
             response.headers.contentType = .json
             try response.content.encode(attractions, as: .json)
@@ -61,18 +59,14 @@ struct TokyoDisneyResortController: RouteCollection {
         }
         
         do {
-            // リポジトリからグリーティング情報を取得
-            let greetings = try await repository.getGreetingInfo(
+            let greetings = try await greetingRepository.execute(
                 parkType,
                 request
             )
             
-            // JSONにエンコードしてレスポンスを作成
             let response = Response(status: HTTPResponseStatus.ok)
             response.headers.contentType = .json
-            
             try response.content.encode(greetings, as: .json)
-            request.logger.info("Returned \(greetings.count) greetings in full format")
             
             return response
         } catch {

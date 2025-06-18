@@ -140,12 +140,20 @@ struct Greeting: Codable {
     struct OperatingHours: Codable {
         let operatingHoursFrom: String
         let operatingHoursTo: String
-        let operatingStatus: String
+        let operatingStatus: String?
         
         private enum CodingKeys: String, CodingKey {
             case operatingHoursFrom = "OperatingHoursFrom"
             case operatingHoursTo = "OperatingHoursTo"
             case operatingStatus = "OperatingStatus"
+        }
+        
+        init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            
+            operatingHoursFrom = try container.decode(String.self, forKey: .operatingHoursFrom)
+            operatingHoursTo = try container.decode(String.self, forKey: .operatingHoursTo)
+            operatingStatus = try container.decodeIfPresent(String.self, forKey: .operatingStatus)
         }
     }
 }
