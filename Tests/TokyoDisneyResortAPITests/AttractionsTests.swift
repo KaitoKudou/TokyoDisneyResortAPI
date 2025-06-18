@@ -21,7 +21,7 @@ struct AttractionsTests {
     @Test("Test TDL Attraction Route Returns OK")
     func tdlAttractionRoute() async throws {
         try await withDependencies {
-            $0[AttractionRepository.self].getIntegratedAttractionInfo = { _, _ in
+            $0[AttractionRepository.self].execute = { _, _ in
                 return []
             }
         } operation: {
@@ -38,7 +38,7 @@ struct AttractionsTests {
     @Test("Test TDS Attraction Route Returns OK")
     func tdsAttractionRoute() async throws {
         try await withDependencies {
-            $0[AttractionRepository.self].getIntegratedAttractionInfo = { _, _ in
+            $0[AttractionRepository.self].execute = { _, _ in
                 return []
             }
         } operation: {
@@ -65,7 +65,7 @@ struct AttractionsTests {
     @Test("Test Cache Is Used For Subsequent Calls")
     func cacheUsage() async throws {
         try await withDependencies {
-            $0[AttractionRepository.self].getIntegratedAttractionInfo = { _, _ in
+            $0[AttractionRepository.self].execute = { _, _ in
                 return []
             }
         } operation: {
@@ -141,7 +141,7 @@ struct AttractionsTests {
     @Test("Test With Mocked Repository Returns Attractions")
     func mockedRepository() async throws {
         try await withDependencies {
-            $0[AttractionRepository.self].getIntegratedAttractionInfo = { _, _ in
+            $0[AttractionRepository.self].execute = { _, _ in
                 return [
                     Attraction(
                         area: "テストエリア",
@@ -230,7 +230,7 @@ struct AttractionsTests {
     func apiClientErrorHandling() async throws {
         try await withDependencies {
             // リポジトリのモックを設定してエラーをスローするように
-            $0[AttractionRepository.self].getIntegratedAttractionInfo = { _, _ in
+            $0[AttractionRepository.self].execute = { _, _ in
                 throw APIError.networkError(URLError(.notConnectedToInternet))
             }
         } operation: {

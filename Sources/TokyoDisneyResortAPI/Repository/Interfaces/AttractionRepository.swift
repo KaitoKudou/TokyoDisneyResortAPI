@@ -3,12 +3,11 @@
 //  TokyoDisneyResortAPI
 //
 //  Created by 工藤 海斗 on 2025/05/05.
-//  Updated by GitHub Copilot on 2025/06/19.
 //
 
 import Vapor
 
-struct AttractionRepository: FacilityRepository {
+struct AttractionRepository: RepositoryProtocol {
     typealias T = Attraction
     
     /// 施設タイプ（アトラクション）

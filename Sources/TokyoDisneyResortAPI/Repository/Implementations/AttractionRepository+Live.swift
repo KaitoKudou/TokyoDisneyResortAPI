@@ -3,7 +3,6 @@
 //  TokyoDisneyResortAPI
 //
 //  Created by 工藤 海斗 on 2025/06/01.
-//  Updated by GitHub Copilot on 2025/06/19.
 //
 
 import Dependencies
@@ -18,7 +17,7 @@ extension AttractionRepository: DependencyKey {
         let attractionHTMLParser: AttractionHTMLParser = .init()
         let dataMapper: AttractionDataMapper = .init()
         
-        // FacilityRepository プロトコルの実装
+        // RepositoryProtocol の実装
         let facilityType: FacilityType = .attraction
         let cacheExpirationTime: CacheExpirationTime = .minutes(10)
         

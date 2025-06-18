@@ -1,9 +1,8 @@
 //
-//  FacilityRepository.swift
+//  RepositoryProtocol.swift
 //  TokyoDisneyResortAPI
 //
 //  Created by GitHub Copilot on 2025/06/18.
-//  Updated on 2025/06/19.
 //
 
 import Vapor
@@ -11,7 +10,7 @@ import Dependencies
 
 /// 施設リポジトリのための共通プロトコル
 /// - Note: アトラクションとグリーティングのリポジトリで共通する機能を提供する
-protocol FacilityRepository<T> {
+protocol RepositoryProtocol<T> {
     /// 施設情報の型
     associatedtype T: Codable & Sendable
     

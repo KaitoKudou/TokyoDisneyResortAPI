@@ -3,12 +3,11 @@
 //  TokyoDisneyResortAPI
 //
 //  Created by GitHub Copilot on 2025/06/18.
-//  Updated by GitHub Copilot on 2025/06/19.
 //
 
 import Vapor
 
-struct GreetingRepository: FacilityRepository {
+struct GreetingRepository: RepositoryProtocol {
     typealias T = Greeting
     
     /// 施設タイプ（グリーティング）

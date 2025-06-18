@@ -3,7 +3,6 @@
 //  TokyoDisneyResortAPI
 //
 //  Created by GitHub Copilot on 2025/06/18.
-//  Updated by GitHub Copilot on 2025/06/19.
 //
 
 import Dependencies
@@ -18,7 +17,7 @@ extension GreetingRepository: DependencyKey {
         let greetingHTMLParser: GreetingHTMLParser = .init()
         let greetingDataMapper: GreetingDataMapper = .init()
         
-        // FacilityRepository プロトコルの実装
+        // RepositoryProtocol の実装
         let facilityType: FacilityType = .greeting
         let cacheExpirationTime: CacheExpirationTime = .minutes(10)
         
