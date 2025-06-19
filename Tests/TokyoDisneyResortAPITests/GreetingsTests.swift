@@ -26,7 +26,7 @@ struct GreetingsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/greeting", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tdl/greeting", afterResponse: { res async in
                     #expect(res.status == .ok)
                     #expect(res.headers.contentType == .json)
                     #expect(res.body.readableBytes > 0)
@@ -43,7 +43,7 @@ struct GreetingsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tds/greeting", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tds/greeting", afterResponse: { res async in
                     #expect(res.status == .ok)
                     #expect(res.headers.contentType == .json)
                     #expect(res.body.readableBytes > 0)
@@ -55,7 +55,7 @@ struct GreetingsTests {
     @Test("Test Invalid Park Type Returns Bad Request")
     func invalidParkType() async throws {
         try await withApp { app in
-            try await app.testing().test(.GET, "tokyo_disney_resort/invalid/greeting", afterResponse: { res async in
+            try await app.testing().test(.GET, "v1/invalid/greeting", afterResponse: { res async in
                 #expect(res.status == .badRequest)
             })
         }
@@ -71,14 +71,14 @@ struct GreetingsTests {
         } operation: {
             try await withApp { app in
                 // 最初のリクエスト（キャッシュなし）
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/greeting", afterResponse: { res1 async throws in
+                try await app.testing().test(.GET, "v1/tdl/greeting", afterResponse: { res1 async throws in
                     #expect(res1.status == .ok)
                     
                     // キャッシュが作成されるのを少し待つ（必要に応じて）
                     try await Task.sleep(for: .seconds(1))
                     
                     // 2回目のリクエスト（キャッシュあり）
-                    try await app.testing().test(.GET, "tokyo_disney_resort/tdl/greeting", afterResponse: { res2 async throws in
+                    try await app.testing().test(.GET, "v1/tdl/greeting", afterResponse: { res2 async throws in
                         #expect(res2.status == .ok)
                         
                         // カスタムJSONDecoderを使用してデコード
@@ -97,36 +97,6 @@ struct GreetingsTests {
                     })
                 })
             }
-        }
-    }
-    
-    // テスト専用のメモリ内キャッシュの実装
-    // @unchecked Sendableを使用してSendable準拠を強制的に追加
-    final class TestMemoryCache: CacheStoreProtocol, @unchecked Sendable {
-        // アクターを使用してストレージをスレッドセーフにする
-        private actor Storage {
-            var data: [String: Any] = [:]
-            
-            // 型引数を使用して型安全にする
-            func get<T>(_ key: String) -> T? {
-                return data[key] as? T
-            }
-            
-            func set<T>(_ key: String, value: T) {
-                data[key] = value
-            }
-        }
-        
-        private let storage = Storage()
-        
-        func get<T: Codable & Sendable>(_ key: String, as type: T.Type, request: Request) async throws -> T? {
-            print("MockCache: Getting value for key: \(key)")
-            return await storage.get(key)
-        }
-        
-        func set<T: Codable & Sendable>(_ key: String, to value: T, expiresIn: CacheExpirationTime, request: Request) async throws {
-            print("MockCache: Setting value for key: \(key)")
-            await storage.set(key, value: value)
         }
     }
     
@@ -209,7 +179,7 @@ struct GreetingsTests {
         } operation: {
             try await withApp { app in
                 // 最初のリクエスト
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/greeting", afterResponse: { res1 async throws in
+                try await app.testing().test(.GET, "v1/tdl/greeting", afterResponse: { res1 async throws in
                     #expect(res1.status == .ok)
                     print("First request completed")
                     
@@ -217,7 +187,7 @@ struct GreetingsTests {
                     try await Task.sleep(for: .seconds(0.5))
                     
                     // 2回目のリクエスト（キャッシュあり）
-                    try await app.testing().test(.GET, "tokyo_disney_resort/tdl/greeting", afterResponse: { res2 async throws in
+                    try await app.testing().test(.GET, "v1/tdl/greeting", afterResponse: { res2 async throws in
                         #expect(res2.status == .ok)
                         print("Second request completed")
                         
@@ -263,7 +233,7 @@ struct GreetingsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/greeting", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tdl/greeting", afterResponse: { res async in
                     #expect(res.status == .ok)
                     
                     // レスポンスJSON文字列を出力（デバッグ用）
@@ -649,7 +619,7 @@ struct GreetingsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/greeting", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tdl/greeting", afterResponse: { res async in
                     #expect(res.status == .unprocessableEntity)
                     
                     // レスポンスのボディをJSONとしてデコード
@@ -672,7 +642,7 @@ struct GreetingsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/greeting", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tdl/greeting", afterResponse: { res async in
                     #expect(res.status == .notFound)
                     
                     // レスポンスのボディをJSONとしてデコード
@@ -695,7 +665,7 @@ struct GreetingsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/greeting", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tdl/greeting", afterResponse: { res async in
                     #expect(res.status == .unprocessableEntity)
                     
                     // レスポンスのボディをJSONとしてデコード
@@ -718,7 +688,7 @@ struct GreetingsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/greeting", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tdl/greeting", afterResponse: { res async in
                     #expect(res.status == .tooManyRequests)
                     
                     // レスポンスのボディをJSONとしてデコード
@@ -742,7 +712,7 @@ struct GreetingsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/greeting", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tdl/greeting", afterResponse: { res async in
                     #expect(res.status == .serviceUnavailable)
                     
                     // レスポンスのボディが適切なエラーメッセージを含んでいるか確認
@@ -766,7 +736,7 @@ struct GreetingsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/greeting", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tdl/greeting", afterResponse: { res async in
                     #expect(res.status == .badGateway)
                     
                     // レスポンスのボディをJSONとしてデコード
@@ -1039,21 +1009,5 @@ struct GreetingsTests {
         
         #expect(standbyTime1 == standbyTime2)
         #expect(standbyTime1 != standbyTime3)
-    }
-}
-
-// テストで使用するカスタムCodingKey
-private struct CustomCodingKey: CodingKey {
-    let stringValue: String
-    let intValue: Int?
-    
-    init?(stringValue: String) {
-        self.stringValue = stringValue
-        self.intValue = nil
-    }
-    
-    init?(intValue: Int) {
-        self.stringValue = "\(intValue)"
-        self.intValue = intValue
     }
 }

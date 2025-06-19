@@ -14,7 +14,7 @@ struct TokyoDisneyResortController: RouteCollection {
     @Dependency(GreetingRepository.self) private var greetingRepository
     
     func boot(routes: any RoutesBuilder) throws {
-        let myRoutes = routes.grouped("tokyo_disney_resort")
+        let myRoutes = routes.grouped("v1")
         // ParkType をパスパラメータとして受け取る
         myRoutes.get(":parkType", "attraction", use: getAttractionStatus)
         myRoutes.get(":parkType", "greeting", use: getGreetingStatus)

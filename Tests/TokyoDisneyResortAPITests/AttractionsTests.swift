@@ -26,7 +26,7 @@ struct AttractionsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tdl/attraction", afterResponse: { res async in
                     #expect(res.status == .ok)
                     #expect(res.headers.contentType == .json)
                     #expect(res.body.readableBytes > 0) // ByteBuffer.isEmptyの代わりにreadableBytesを使用
@@ -43,7 +43,7 @@ struct AttractionsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tds/attraction", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tds/attraction", afterResponse: { res async in
                     #expect(res.status == .ok)
                     #expect(res.headers.contentType == .json)
                     #expect(res.body.readableBytes > 0)
@@ -55,7 +55,7 @@ struct AttractionsTests {
     @Test("Test Invalid Park Type Returns Bad Request")
     func invalidParkType() async throws {
         try await withApp { app in
-            try await app.testing().test(.GET, "tokyo_disney_resort/invalid/attraction", afterResponse: { res async in
+            try await app.testing().test(.GET, "v1/invalid/attraction", afterResponse: { res async in
                 #expect(res.status == .badRequest)
             })
         }
@@ -71,14 +71,14 @@ struct AttractionsTests {
         } operation: {
             try await withApp { app in
                 // 最初のリクエスト（キャッシュなし）
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res1 async throws in
+                try await app.testing().test(.GET, "v1/tdl/attraction", afterResponse: { res1 async throws in
                     #expect(res1.status == .ok)
                     
                     // キャッシュが作成されるのを少し待つ（必要に応じて）
                     try await Task.sleep(for: .seconds(1))
                     
                     // 2回目のリクエスト（キャッシュあり）
-                    try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res2 async throws in
+                    try await app.testing().test(.GET, "v1/tdl/attraction", afterResponse: { res2 async throws in
                         #expect(res2.status == .ok)
                         
                         // パスカルケースに対応したデコーダを作成
@@ -164,7 +164,7 @@ struct AttractionsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tdl/attraction", afterResponse: { res async in
                     #expect(res.status == .ok)
                     
                     // レスポンスJSON文字列を出力（デバッグ用）
@@ -235,7 +235,7 @@ struct AttractionsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tdl/attraction", afterResponse: { res async in
                     #expect(res.status == .serviceUnavailable)
                 })
             }
@@ -374,7 +374,7 @@ struct AttractionsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tdl/attraction", afterResponse: { res async in
                     #expect(res.status == .unprocessableEntity)
                     
                     // レスポンスのボディをJSONとしてデコード
@@ -395,7 +395,7 @@ struct AttractionsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tdl/attraction", afterResponse: { res async in
                     #expect(res.status == .notFound)
                     
                     // レスポンスのボディをJSONとしてデコード
@@ -418,7 +418,7 @@ struct AttractionsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tdl/attraction", afterResponse: { res async in
                     #expect(res.status == .unprocessableEntity)
                     
                     // レスポンスのボディをJSONとしてデコード
@@ -441,7 +441,7 @@ struct AttractionsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tdl/attraction", afterResponse: { res async in
                     #expect(res.status == .tooManyRequests)
                     
                     // レスポンスのボディをJSONとしてデコード
@@ -464,7 +464,7 @@ struct AttractionsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tdl/attraction", afterResponse: { res async in
                     #expect(res.status == .badGateway)
                     
                     // レスポンスのボディをJSONとしてデコード
@@ -488,7 +488,7 @@ struct AttractionsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tdl/attraction", afterResponse: { res async in
                     #expect(res.status == .serviceUnavailable)
                     
                     // レスポンスのボディが適切なエラーメッセージを含んでいるか確認
@@ -513,7 +513,7 @@ struct AttractionsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tdl/attraction", afterResponse: { res async in
                     #expect(res.status == .badGateway)
                 })
             }
@@ -529,7 +529,7 @@ struct AttractionsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tdl/attraction", afterResponse: { res async in
                     #expect(res.status == .unprocessableEntity)
                     
                     // レスポンスのボディをJSONとしてデコード
@@ -550,7 +550,7 @@ struct AttractionsTests {
             }
         } operation: {
             try await withApp { app in
-                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                try await app.testing().test(.GET, "v1/tdl/attraction", afterResponse: { res async in
                     #expect(res.status == .serviceUnavailable)
                     
                     // レスポンスのボディをJSONとしてデコード
