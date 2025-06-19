@@ -41,8 +41,12 @@ struct APIFetcher<T: Codable & Sendable>: Sendable {
             let facilities = try parser.parseFacilities(from: htmlString)
             
             return facilities
-        } catch {
+        } catch let error as any AbortError {
+            // AbortErrorに準拠したエラーはそのまま伝播
             throw error
+        } catch {
+            // その他のエラーは適切なAbortErrorにラップ
+            throw Abort(.internalServerError, reason: "Failed to fetch basic facility information: \(error.localizedDescription)")
         }
     }
     
@@ -71,65 +75,51 @@ struct APIFetcher<T: Codable & Sendable>: Sendable {
             
             // JSONデコード
             let decoder = JSONDecoder()
-            do {
-                if T.self == Greeting.self {
-                    // グリーティングの場合は入れ子構造を処理
-                    do {
-                        let greetingResponse = try decoder.decode(GreetingResponse.self, from: jsonData)
-                        guard let facilities = greetingResponse.facilities as? [T] else {
-                            request.logger.error("Failed to cast greeting facilities to expected type")
-                            throw APIError.decodingFailed
-                        }
-                        request.logger.info("Successfully decoded \(facilities.count) facilities from nested structure")
-                        return facilities
-                    } catch {
-                        // グリーティングデコードの詳細なエラーログ
-                        request.logger.error("Failed to decode greeting response: \(error)")
-                        
-                        // JSONデータの一部をログに表示してデバッグを容易にする
-                        if let jsonString = String(data: jsonData, encoding: .utf8) {
-                            // 長すぎる場合は一部だけを出力
-                            let maxLength = 500
-                            let trimmedString = jsonString.count > maxLength ? String(jsonString.prefix(maxLength)) + "..." : jsonString
-                            request.logger.debug("JSON data sample: \(trimmedString)")
-                        }
-                        
-                        if let decodingError = error as? DecodingError {
-                            switch decodingError {
-                            case .keyNotFound(let key, let context):
-                                request.logger.error("Key not found: \(key.stringValue), path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-                                request.logger.debug("Debug description: \(context.debugDescription)")
-                                
-                            case .valueNotFound(let type, let context):
-                                request.logger.error("Value of type \(type) not found at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-                                request.logger.debug("Debug description: \(context.debugDescription)")
-                                
-                            case .typeMismatch(let type, let context):
-                                request.logger.error("Type mismatch: expected \(type) at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-                                request.logger.debug("Debug description: \(context.debugDescription)")
-                                
-                            case .dataCorrupted(let context):
-                                request.logger.error("Data corrupted: \(context.debugDescription)")
-                                request.logger.debug("Coding path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-                                
-                            @unknown default:
-                                request.logger.error("Other decoding error: \(decodingError)")
-                            }
-                        }
-                        throw error
-                    }
-                } else {
-                    // その他の施設タイプは直接配列としてデコード
-                    let facilities = try decoder.decode([T].self, from: jsonData)
-                    request.logger.info("Successfully decoded \(facilities.count) facilities")
-                    return facilities
+            
+            // 施設タイプに応じたデコード処理
+            if T.self == Greeting.self {
+                // グリーティングの場合は入れ子構造を処理
+                let greetingResponse = try decoder.decode(GreetingResponse.self, from: jsonData)
+                guard let facilities = greetingResponse.facilities as? [T] else {
+                    request.logger.error("Failed to cast greeting facilities to expected type")
+                    throw APIError.decodingFailed
                 }
-            } catch let decodingError {
-                request.logger.error("Failed to decode facilities: \(decodingError)")
-                throw APIError.decodingFailed
+                request.logger.info("Successfully decoded \(facilities.count) facilities from nested structure")
+                return facilities
+            } else {
+                // その他の施設タイプは直接配列としてデコード
+                let facilities = try decoder.decode([T].self, from: jsonData)
+                request.logger.info("Successfully decoded \(facilities.count) facilities")
+                return facilities
             }
+            
+        } catch let error as any AbortError {
+            // AbortErrorプロトコルに準拠したエラーはそのまま伝播
+            request.logger.error("Error in fetchOperatingStatus: \(error.reason)")
+            throw error
+            
         } catch {
-            request.logger.error("Failed to fetch operating status: \(error.localizedDescription)")
+            // すべてのエラーをデコード失敗として処理するが、DecodingErrorの場合は詳細なログを出力
+            if let decodingError = error as? DecodingError {
+                request.logger.error("Decoding error in fetchOperatingStatus: \(decodingError)")
+                
+                // エラータイプに応じたログ出力
+                switch decodingError {
+                case .keyNotFound(let key, let context):
+                    request.logger.error("Key not found: \(key.stringValue), path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                case .valueNotFound(let type, let context):
+                    request.logger.error("Value of type \(type) not found at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                case .typeMismatch(let type, let context):
+                    request.logger.error("Type mismatch: expected \(type) at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
+                case .dataCorrupted(let context):
+                    request.logger.error("Data corrupted: \(context.debugDescription)")
+                @unknown default:
+                    request.logger.error("Other decoding error: \(decodingError)")
+                }
+            } else {
+                request.logger.error("Failed to fetch operating status: \(error.localizedDescription)")
+            }
+            
             throw APIError.decodingFailed
         }
     }

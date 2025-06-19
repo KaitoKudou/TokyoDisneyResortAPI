@@ -71,9 +71,14 @@ extension GreetingRepository: DependencyKey {
                     )
                     
                     return greetings
-                } catch {
-                    request.logger.error("Failed to fetch greeting data: \(error.localizedDescription)")
+                } catch let error as any AbortError {
+                    // AbortErrorに準拠したエラーはそのまま上に伝播
+                    request.logger.error("Failed to fetch greeting data: \(error.reason)")
                     throw error
+                } catch {
+                    // その他のエラーは適切なHTTPエラーにラップ
+                    request.logger.error("Failed to fetch greeting data: \(error.localizedDescription)")
+                    throw Abort(.internalServerError, reason: "Failed to fetch greeting data: \(error.localizedDescription)")
                 }
             }
         )

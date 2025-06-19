@@ -236,7 +236,7 @@ struct AttractionsTests {
         } operation: {
             try await withApp { app in
                 try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
-                    #expect(res.status == .internalServerError)
+                    #expect(res.status == .serviceUnavailable)
                 })
             }
         }
@@ -363,6 +363,206 @@ struct AttractionsTests {
         
         #expect(request.url?.absoluteString.contains("tds") == true)
         #expect(request.httpMethod == "GET")
+    }
+    
+    // MARK: エラーハンドリングテスト
+    @Test("Test HTMLParserError.invalidHTML throws correct error")
+    func testInvalidHTMLError() async throws {
+        try await withDependencies {
+            $0[AttractionRepository.self].execute = { _, _ in
+                throw HTMLParserError.invalidHTML
+            }
+        } operation: {
+            try await withApp { app in
+                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                    #expect(res.status == .unprocessableEntity)
+                    
+                    // レスポンスのボディをJSONとしてデコード
+                    if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
+                        #expect(errorData.error == true)
+                        #expect(errorData.reason == "HTMLデータの形式が無効です")
+                    }
+                })
+            }
+        }
+    }
+
+    @Test("Test HTMLParserError.noAttractionFound throws correct error")
+    func testNoAttractionFoundError() async throws {
+        try await withDependencies {
+            $0[AttractionRepository.self].execute = { _, _ in
+                throw HTMLParserError.noAttractionFound
+            }
+        } operation: {
+            try await withApp { app in
+                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                    #expect(res.status == .notFound)
+                    
+                    // レスポンスのボディをJSONとしてデコード
+                    if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
+                        #expect(errorData.error == true)
+                        #expect(errorData.reason == "アトラクション情報が見つかりませんでした")
+                    } else {
+                        XCTFail("レスポンスボディをErrorResponseにデコードできませんでした")
+                    }
+                })
+            }
+        }
+    }
+
+    @Test("Test API Decode Failure Error Handling")
+    func testDecodingFailedError() async throws {
+        try await withDependencies {
+            $0[AttractionRepository.self].execute = { _, _ in
+                throw APIError.decodingFailed
+            }
+        } operation: {
+            try await withApp { app in
+                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                    #expect(res.status == .unprocessableEntity)
+                    
+                    // レスポンスのボディをJSONとしてデコード
+                    if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
+                        #expect(errorData.error == true)
+                        #expect(errorData.reason == "Failed to decode the response data")
+                    } else {
+                        XCTFail("レスポンスボディをErrorResponseにデコードできませんでした")
+                    }
+                })
+            }
+        }
+    }
+    
+    @Test("Test Rate Limiting Error Handling")
+    func testRateLimitedError() async throws {
+        try await withDependencies {
+            $0[AttractionRepository.self].execute = { _, _ in
+                throw APIError.rateLimited
+            }
+        } operation: {
+            try await withApp { app in
+                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                    #expect(res.status == .tooManyRequests)
+                    
+                    // レスポンスのボディをJSONとしてデコード
+                    if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
+                        #expect(errorData.error == true)
+                        #expect(errorData.reason == "Request was rate limited")
+                    } else {
+                        XCTFail("レスポンスボディをErrorResponseにデコードできませんでした")
+                    }
+                })
+            }
+        }
+    }
+    
+    @Test("Test Server Error Handling")
+    func testServerError() async throws {
+        try await withDependencies {
+            $0[AttractionRepository.self].execute = { _, _ in
+                throw APIError.serverError(500)
+            }
+        } operation: {
+            try await withApp { app in
+                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                    #expect(res.status == .badGateway)
+                    
+                    // レスポンスのボディをJSONとしてデコード
+                    if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
+                        #expect(errorData.error == true)
+                        #expect(errorData.reason == "Server error with status code 500")
+                    } else {
+                        XCTFail("レスポンスボディをErrorResponseにデコードできませんでした")
+                    }
+                })
+            }
+        }
+    }
+    
+    @Test("Test Network Error Handling")
+    func testNetworkErrorHandlingDetails() async throws {
+        // 特定のURLエラーでテスト
+        try await withDependencies {
+            $0[AttractionRepository.self].execute = { _, _ in
+                throw APIError.networkError(URLError(.timedOut))
+            }
+        } operation: {
+            try await withApp { app in
+                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                    #expect(res.status == .serviceUnavailable)
+                    
+                    // レスポンスのボディが適切なエラーメッセージを含んでいるか確認
+                    if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
+                        #expect(errorData.error == true)
+                        #expect(errorData.reason.contains("Network error"))
+                        // タイムアウトエラーの具体的なメッセージは実行環境によって異なるため、一般的なチェックに変更
+                        #expect(errorData.reason.contains("URLErrorDomain"))
+                    } else {
+                        XCTFail("レスポンスボディをErrorResponseにデコードできませんでした")
+                    }
+                })
+            }
+        }
+    }
+    
+    @Test("Test Invalid Response Error")
+    func testInvalidResponseError() async throws {
+        try await withDependencies {
+            $0[AttractionRepository.self].execute = { _, _ in
+                throw APIError.invalidResponse
+            }
+        } operation: {
+            try await withApp { app in
+                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                    #expect(res.status == .badGateway)
+                })
+            }
+        }
+    }
+    
+    @Test("Test HTMLParser Error With Detailed Messages")
+    func testHTMLParserDetailedErrors() async throws {
+        // parseErrorのテスト
+        try await withDependencies {
+            $0[AttractionRepository.self].execute = { _, _ in
+                throw HTMLParserError.parseError
+            }
+        } operation: {
+            try await withApp { app in
+                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                    #expect(res.status == .unprocessableEntity)
+                    
+                    // レスポンスのボディをJSONとしてデコード
+                    if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
+                        #expect(errorData.error == true)
+                        #expect(errorData.reason == "HTMLデータの解析中にエラーが発生しました")
+                    } else {
+                        XCTFail("レスポンスボディをErrorResponseにデコードできませんでした")
+                    }
+                })
+            }
+        }
+        
+        // networkErrorのテスト
+        try await withDependencies {
+            $0[AttractionRepository.self].execute = { _, _ in
+                throw HTMLParserError.networkError
+            }
+        } operation: {
+            try await withApp { app in
+                try await app.testing().test(.GET, "tokyo_disney_resort/tdl/attraction", afterResponse: { res async in
+                    #expect(res.status == .serviceUnavailable)
+                    
+                    // レスポンスのボディをJSONとしてデコード
+                    if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
+                        #expect(errorData.error == true)
+                        #expect(errorData.reason == "ネットワークエラーが発生しました")
+                    } else {
+                        XCTFail("レスポンスボディをErrorResponseにデコードできませんでした")
+                    }
+                })
+            }
+        }
     }
 }
 

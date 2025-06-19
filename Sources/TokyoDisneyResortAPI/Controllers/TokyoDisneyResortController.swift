@@ -25,8 +25,7 @@ struct TokyoDisneyResortController: RouteCollection {
         // URL から ParkType を取得
         guard let parkTypeString = request.parameters.get("parkType"),
               let parkType = ParkType(rawValue: parkTypeString) else {
-            return Response(status: HTTPResponseStatus.badRequest,
-                           body: Response.Body(string: "Invalid park type. Use 'tdl' for Tokyo Disneyland or 'tds' for Tokyo DisneySea"))
+            throw Abort(.badRequest, reason: "Invalid park type. Use 'tdl' for Tokyo Disneyland or 'tds' for Tokyo DisneySea")
         }
         
         do {
@@ -40,12 +39,14 @@ struct TokyoDisneyResortController: RouteCollection {
             try response.content.encode(attractions, as: .json)
             
             return response
+        } catch let error as any AbortError {
+            // AbortErrorに準拠したエラーは、そのステータスコードとメッセージを使用
+            request.logger.error("Failed to get attraction data: \(error.reason)")
+            throw error
         } catch {
-            request.logger.error("Failed to get attraction data: \(error)")
-            return Response(
-                status: HTTPResponseStatus.internalServerError,
-                body: Response.Body(string: "Failed to get attraction data: \(error.localizedDescription)")
-            )
+            // その他のエラーは内部サーバーエラーとしてラップ
+            request.logger.error("Failed to get attraction data: \(error.localizedDescription)")
+            throw Abort(.internalServerError, reason: "Failed to get attraction data: \(error.localizedDescription)")
         }
     }
     
@@ -54,8 +55,7 @@ struct TokyoDisneyResortController: RouteCollection {
         // URL から ParkType を取得
         guard let parkTypeString = request.parameters.get("parkType"),
               let parkType = ParkType(rawValue: parkTypeString) else {
-            return Response(status: HTTPResponseStatus.badRequest,
-                           body: Response.Body(string: "Invalid park type. Use 'tdl' for Tokyo Disneyland or 'tds' for Tokyo DisneySea"))
+            throw Abort(.badRequest, reason: "Invalid park type. Use 'tdl' for Tokyo Disneyland or 'tds' for Tokyo DisneySea")
         }
         
         do {
@@ -69,12 +69,14 @@ struct TokyoDisneyResortController: RouteCollection {
             try response.content.encode(greetings, as: .json)
             
             return response
+        } catch let error as any AbortError {
+            // AbortErrorに準拠したエラーは、そのステータスコードとメッセージを使用
+            request.logger.error("Failed to get greeting data: \(error.reason)")
+            throw error
         } catch {
-            request.logger.error("Failed to get greeting data: \(error)")
-            return Response(
-                status: HTTPResponseStatus.internalServerError,
-                body: Response.Body(string: "Failed to get greeting data: \(error.localizedDescription)")
-            )
+            // その他のエラーは内部サーバーエラーとしてラップ
+            request.logger.error("Failed to get greeting data: \(error.localizedDescription)")
+            throw Abort(.internalServerError, reason: "Failed to get greeting data: \(error.localizedDescription)")
         }
     }
 }

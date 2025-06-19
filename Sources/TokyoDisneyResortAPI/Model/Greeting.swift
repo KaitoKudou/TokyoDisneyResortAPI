@@ -155,6 +155,13 @@ struct Greeting: Codable {
             operatingHoursTo = try container.decode(String.self, forKey: .operatingHoursTo)
             operatingStatus = try container.decodeIfPresent(String.self, forKey: .operatingStatus)
         }
+        
+        /// 標準の初期化子
+        init(operatingHoursFrom: String, operatingHoursTo: String, operatingStatus: String?) {
+            self.operatingHoursFrom = operatingHoursFrom
+            self.operatingHoursTo = operatingHoursTo
+            self.operatingStatus = operatingStatus
+        }
     }
 }
 
