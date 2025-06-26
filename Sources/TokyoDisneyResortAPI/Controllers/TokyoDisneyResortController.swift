@@ -12,12 +12,14 @@ import Dependencies
 struct TokyoDisneyResortController: RouteCollection {
     @Dependency(AttractionRepository.self) private var attractionRepository
     @Dependency(GreetingRepository.self) private var greetingRepository
+    @Dependency(RestaurantRepository.self) private var restaurantRepository
     
     func boot(routes: any RoutesBuilder) throws {
         let myRoutes = routes.grouped("v1")
         // ParkType をパスパラメータとして受け取る
         myRoutes.get(":parkType", "attraction", use: getAttractionStatus)
         myRoutes.get(":parkType", "greeting", use: getGreetingStatus)
+        myRoutes.get(":parkType", "restaurant", use: getRestaurantStatus)
     }
     
     /// ParkType に応じたアトラクション情報を返す
@@ -77,6 +79,33 @@ struct TokyoDisneyResortController: RouteCollection {
             // その他のエラーは内部サーバーエラーとしてラップ
             request.logger.error("Failed to get greeting data: \(error.localizedDescription)")
             throw Abort(.internalServerError, reason: "Failed to get greeting data: \(error.localizedDescription)")
+        }
+    }
+    
+    /// ParkType に応じたレストラン情報を返す
+    func getRestaurantStatus(request: Request) async throws -> Response {
+        guard let parkTypeString = request.parameters.get("parkType"),
+              let parkType = ParkType(rawValue: parkTypeString) else {
+            throw Abort(.badRequest, reason: "Invalid park type. Use 'tdl' for Tokyo Disneyland or 'tds' for Tokyo DisneySea")
+        }
+        
+        do {
+            let restaurants = try await restaurantRepository.execute(
+                parkType,
+                request
+            )
+            
+            let response = Response(status: HTTPResponseStatus.ok)
+            response.headers.contentType = .json
+            try response.content.encode(restaurants, as: .json)
+            
+            return response
+        } catch let error as any AbortError {
+            request.logger.error("Failed to get restaurant data: \(error.reason)")
+            throw error
+        } catch {
+            request.logger.error("Failed to get restaurant data: \(error.localizedDescription)")
+            throw Abort(.internalServerError, reason: "Failed to get restaurant data: \(error.localizedDescription)")
         }
     }
 }

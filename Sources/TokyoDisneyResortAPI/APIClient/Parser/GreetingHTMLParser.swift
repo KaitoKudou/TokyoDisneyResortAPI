@@ -9,42 +9,42 @@ import SwiftSoup
 
 /// HTML文書からグリーティング情報を抽出するパーサー
 struct GreetingHTMLParser: FacilityHTMLParser, Sendable {
-    typealias FacilityType = Greeting
+    //typealias FacilityType = Greeting
     
     /// 既存コードとの互換性のために残すメソッド
-    func parseGreetings(from htmlString: String) throws -> [Greeting] {
-        return try parseFacilities(from: htmlString)
-    }
+//    func parseGreetings(from htmlString: String) throws -> [Greeting] {
+//        return try parseFacilities(from: htmlString)
+//    }
     
     /// HTML文書からグリーティング情報を抽出する
-    func extractFacilities(from document: Document) throws -> [Greeting] {
-        // FacilityHTMLParserのデフォルト実装を利用するが、エラー型をカスタマイズ
-        var greetings = [Greeting]()
-        
-        // data-categorize属性を持つli要素を探す
-        let greetingLiItems = try document.select("li[data-categorize]")
-        
-        if greetingLiItems.isEmpty() {
-            throw HTMLParserError.noGreetingFound // グリーティング用のエラー
-        }
-        
-        // 各グリーティングの情報を解析
-        for element in greetingLiItems {
-            do {
-                let greeting = try createFacilityModel(from: element)
-                greetings.append(greeting)
-            } catch {
-                // 1つのグリーティング解析に失敗してもその他は続行する
-                continue
-            }
-        }
-        
-        if greetings.isEmpty {
-            throw HTMLParserError.parseError
-        }
-        
-        return greetings
-    }
+//    func extractFacilities(from document: Document) throws -> [Greeting] {
+//        // FacilityHTMLParserのデフォルト実装を利用するが、エラー型をカスタマイズ
+//        var greetings = [Greeting]()
+//        
+//        // data-categorize属性を持つli要素を探す
+//        let greetingLiItems = try document.select("li[data-categorize]")
+//        
+//        if greetingLiItems.isEmpty() {
+//            throw HTMLParserError.noGreetingFound // グリーティング用のエラー
+//        }
+//        
+//        // 各グリーティングの情報を解析
+//        for element in greetingLiItems {
+//            do {
+//                let greeting = try createFacilityModel(from: element)
+//                greetings.append(greeting)
+//            } catch {
+//                // 1つのグリーティング解析に失敗してもその他は続行する
+//                continue
+//            }
+//        }
+//        
+//        if greetings.isEmpty {
+//            throw HTMLParserError.parseError
+//        }
+//        
+//        return greetings
+//    }
     
     /// HTMLから抽出した要素をグリーティングモデルに変換する
     func createFacilityModel(from element: Element) throws -> Greeting {

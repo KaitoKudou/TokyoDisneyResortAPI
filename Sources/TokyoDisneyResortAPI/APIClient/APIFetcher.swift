@@ -77,7 +77,13 @@ struct APIFetcher<T: Codable & Sendable>: Sendable {
             let decoder = JSONDecoder()
             
             // 施設タイプに応じたデコード処理
-            if T.self == Greeting.self {
+            if facilityType == .restaurant {
+                // レストランのデバッグ情報
+                request.logger.debug("Processing restaurant data")
+                let facilities = try decoder.decode([T].self, from: jsonData)
+                request.logger.info("Successfully decoded \(facilities.count) restaurant facilities")
+                return facilities
+            } else if T.self == Greeting.self {
                 // グリーティングの場合は入れ子構造を処理
                 let greetingResponse = try decoder.decode(GreetingResponse.self, from: jsonData)
                 guard let facilities = greetingResponse.facilities as? [T] else {

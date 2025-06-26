@@ -9,42 +9,42 @@ import SwiftSoup
 
 /// HTML文書からアトラクション情報を抽出するパーサー
 struct AttractionHTMLParser: FacilityHTMLParser, Sendable {
-    typealias FacilityType = Attraction
-    
-    /// 既存コードとの互換性のために残すメソッド
-    func parseAttractions(from htmlString: String) throws -> [Attraction] {
-        return try parseFacilities(from: htmlString)
-    }
-    
-    /// HTML文書からアトラクション情報を抽出する
-    func extractFacilities(from document: Document) throws -> [Attraction] {
-        // FacilityHTMLParserのデフォルト実装を利用するが、エラー型をカスタマイズ
-        var attractions = [Attraction]()
-        
-        // data-categorize属性を持つli要素を探す
-        let attractionLiItems = try document.select("li[data-categorize]")
-        
-        if attractionLiItems.isEmpty() {
-            throw HTMLParserError.noAttractionFound // アトラクション用のエラー
-        }
-        
-        // 各アトラクションの情報を解析
-        for element in attractionLiItems {
-            do {
-                let attraction = try createFacilityModel(from: element)
-                attractions.append(attraction)
-            } catch {
-                // 1つのアトラクション解析に失敗してもその他は続行する
-                continue
-            }
-        }
-        
-        if attractions.isEmpty {
-            throw HTMLParserError.parseError
-        }
-        
-        return attractions
-    }
+//    typealias FacilityType = Attraction
+//    
+//    /// 既存コードとの互換性のために残すメソッド
+//    func parseAttractions(from htmlString: String) throws -> [Attraction] {
+//        return try parseFacilities(from: htmlString)
+//    }
+//    
+//    /// HTML文書からアトラクション情報を抽出する
+//    func extractFacilities(from document: Document) throws -> [Attraction] {
+//        // FacilityHTMLParserのデフォルト実装を利用するが、エラー型をカスタマイズ
+//        var attractions = [Attraction]()
+//        
+//        // data-categorize属性を持つli要素を探す
+//        let attractionLiItems = try document.select("li[data-categorize]")
+//        
+//        if attractionLiItems.isEmpty() {
+//            throw HTMLParserError.noAttractionFound // アトラクション用のエラー
+//        }
+//        
+//        // 各アトラクションの情報を解析
+//        for element in attractionLiItems {
+//            do {
+//                let attraction = try createFacilityModel(from: element)
+//                attractions.append(attraction)
+//            } catch {
+//                // 1つのアトラクション解析に失敗してもその他は続行する
+//                continue
+//            }
+//        }
+//        
+//        if attractions.isEmpty {
+//            throw HTMLParserError.parseError
+//        }
+//        
+//        return attractions
+//    }
     
     /// HTMLから抽出した要素をアトラクションモデルに変換する
     func createFacilityModel(from element: Element) throws -> Attraction {

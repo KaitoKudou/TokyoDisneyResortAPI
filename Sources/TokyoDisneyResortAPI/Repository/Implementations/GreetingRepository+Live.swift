@@ -9,6 +9,18 @@ import Dependencies
 import Foundation
 import Vapor
 
+extension GreetingRepository: CacheableEntity {
+    /// キャッシュの有効期限（デフォルト：10分）
+    static var cacheExpirationTime: CacheExpirationTime { .minutes(10) }
+    
+    /// 指定されたパークタイプのグリーティングキャッシュキーを生成
+    /// - Parameter parkType: パークタイプ (TDL/TDS)
+    /// - Returns: キャッシュキー
+    static func cacheKey(for parkType: ParkType) -> String {
+        return "greetings_\(parkType.rawValue)"
+    }
+}
+
 extension GreetingRepository: DependencyKey {
     static var liveValue: Self {
         @Dependency(\.cacheStore) var cacheStore
@@ -17,20 +29,14 @@ extension GreetingRepository: DependencyKey {
         let greetingHTMLParser: GreetingHTMLParser = .init()
         let greetingDataMapper: GreetingDataMapper = .init()
         
-        // RepositoryProtocol の実装
         let facilityType: FacilityType = .greeting
-        let cacheExpirationTime: CacheExpirationTime = .minutes(10)
-        
-        @Sendable func cacheKey(for parkType: ParkType) -> String {
-            return "greetings_\(parkType.rawValue)"
-        }
         
         return .init(
             execute: { parkType, request in
                 // キャッシュからの取得を試みる
                 if let cachedGreetings = try await cacheStore.get(
-                    cacheKey(for: parkType), 
-                    as: [Greeting].self, 
+                    cacheKey(for: parkType),
+                    as: [Greeting].self,
                     request: request
                 ) {
                     request.logger.info("Using cached greeting info for \(parkType.rawValue)")

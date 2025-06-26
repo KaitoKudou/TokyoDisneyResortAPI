@@ -7,21 +7,8 @@
 
 import Vapor
 
-struct GreetingRepository: RepositoryProtocol {
+struct GreetingRepository {
     typealias T = Greeting
-    
-    /// 施設タイプ（グリーティング）
-    let facilityType: FacilityType = .greeting
-    
-    /// キャッシュの有効期限（デフォルト：10分）
-    let cacheExpirationTime: CacheExpirationTime = .minutes(10)
-    
-    /// 指定されたパークタイプのグリーティングキャッシュキーを生成
-    /// - Parameter parkType: パークタイプ (TDL/TDS)
-    /// - Returns: キャッシュキー
-    func cacheKey(for parkType: ParkType) -> String {
-        return "greetings_\(parkType.rawValue)"
-    }
     
     /// キャッシュを含めた最新のグリーティング情報を取得
     /// - Parameters:

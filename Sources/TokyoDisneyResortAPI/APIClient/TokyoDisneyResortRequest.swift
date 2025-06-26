@@ -31,6 +31,7 @@ enum ParkType: String {
 enum FacilityType: String {
     case attraction // アトラクション情報
     case greeting   // グリーティング情報
+    case restaurant // レストラン情報
 }
 
 extension TokyoDisneyResortRequest {
@@ -40,12 +41,11 @@ extension TokyoDisneyResortRequest {
         
         switch facilityType {
         case .attraction:
-            // HTMLのエンドポイント（スクレイピング用）
             urlString = "https://www.tokyodisneyresort.jp/\(parkType.rawValue)/attraction.html"
-            
         case .greeting:
-            // グリーティング情報のJSONエンドポイント
             urlString = "https://www.tokyodisneyresort.jp/\(parkType.rawValue)/greeting.html"
+        case .restaurant:
+            urlString = "https://www.tokyodisneyresort.jp/\(parkType.rawValue)/restaurant/list.html"
         }
         
         // URLが無効な場合はfatalErrorを発生
