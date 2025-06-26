@@ -262,7 +262,7 @@ struct AttractionsTests {
         </html>
         """
         
-        let attractions = try htmlParser.parseAttractions(from: testHTML)
+        let attractions = try htmlParser.parseFacilities(from: testHTML)
         
         #expect(attractions.count == 1)
         #expect(attractions[0].name == "テストアトラクション")

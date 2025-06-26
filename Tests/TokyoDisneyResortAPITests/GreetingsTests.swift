@@ -301,7 +301,7 @@ struct GreetingsTests {
         </html>
         """
         
-        let greetings = try htmlParser.parseGreetings(from: testHTML)
+        let greetings = try htmlParser.parseFacilities(from: testHTML)
         
         #expect(greetings.count == 1)
         #expect(greetings[0].name == "テストグリーティング")
@@ -351,7 +351,7 @@ struct GreetingsTests {
         </html>
         """
         
-        let greetings = try htmlParser.parseGreetings(from: testHTML)
+        let greetings = try htmlParser.parseFacilities(from: testHTML)
         
         // グリーティング数の検証 - 実際の実装では4つのグリーティングが見つかったようなので、期待値を合わせる
         #expect(greetings.count == 4)
@@ -384,22 +384,21 @@ struct GreetingsTests {
         // HTMLパースエラーを検証
         let invalidHTML = "<html><body><malformed>"
         do {
-            _ = try htmlParser.parseGreetings(from: invalidHTML)
+            _ = try htmlParser.parseFacilities(from: invalidHTML)
             XCTFail("不正なHTMLなのにエラーが発生しませんでした")
         } catch {
             #expect(error is HTMLParserError)
-            // エラータイプが実装上はnoGreetingFoundを返しているようなので、それに合わせる
-            #expect((error as? HTMLParserError) == HTMLParserError.noGreetingFound)
+            #expect((error as? HTMLParserError) == HTMLParserError.parseError)
         }
         
         // グリーティング要素がない場合のエラーを検証
         let noGreetingsHTML = "<html><body><ul><li>No greetings here</li></ul></body></html>"
         do {
-            let result = try htmlParser.parseGreetings(from: noGreetingsHTML)
+            let result = try htmlParser.parseFacilities(from: noGreetingsHTML)
             #expect(result.isEmpty)
         } catch {
             #expect(error is HTMLParserError)
-            #expect((error as? HTMLParserError) == HTMLParserError.noGreetingFound)
+            #expect((error as? HTMLParserError) == HTMLParserError.parseError)
         }
     }
     
@@ -801,7 +800,7 @@ struct GreetingsTests {
         </html>
         """
         
-        let greetings = try htmlParser.parseGreetings(from: testHTML)
+        let greetings = try htmlParser.parseFacilities(from: testHTML)
         
         // キャラクター名から"キャラクター："が削除され、余分な空白が整理されていることを確認
         #expect(greetings[0].character == "ミッキーマウス")
