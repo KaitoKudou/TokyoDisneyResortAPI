@@ -35,7 +35,7 @@ extension AttractionRepository: DependencyKey {
             execute: { parkType, request in
                 // キャッシュからの取得を試みる
                 if let cachedAttractions = try await cacheStore.get(
-                    Self.cacheKey(for: parkType),
+                    cacheKey(for: parkType),
                     as: [Attraction].self,
                     request: request
                 ) {
