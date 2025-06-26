@@ -11,7 +11,7 @@ import SwiftSoup
 struct RestaurantHTMLParser: FacilityHTMLParser, Sendable {
     typealias FacilityType = Restaurant
     
-    func createFacilityModel(from element: Element) throws -> Restaurant {
+    func createFacilityModel(from element: Element) throws -> FacilityType {
         // エリア名を取得
         let area = try element.select(".area").first()?.text() ?? "エリア不明"
         
