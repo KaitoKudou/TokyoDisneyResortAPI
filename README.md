@@ -8,13 +8,88 @@
 
 - アトラクション情報（待ち時間、運営状況、運営時間など）
 - グリーティング情報（キャラクター、開催場所、待ち時間、開催時間など）
+- レストラン情報（エリア、営業時間、予約URL、アイコンタグなど）
 
 ## 主なエンドポイント
 
 - `GET /tokyo_disney_resort/:parkType/attraction` - TDL/TDSのアトラクション情報を取得
 - `GET /tokyo_disney_resort/:parkType/greeting` - TDL/TDSのグリーティング情報を取得
+- `GET /tokyo_disney_resort/:parkType/restaurant` - TDL/TDSのレストラン情報を取得
 
 `:parkType`には`tdl`（東京ディズニーランド）または`tds`（東京ディズニーシー）を指定します。
+
+## レスポンス例
+
+### アトラクション情報
+
+```json
+[
+    {
+        "operatingHoursFrom": "9:00",
+        "imageURL": "https://media1.tokyodisneyresort.jp/images/adventure/attraction/121_thum_name.jpg?mod=20240822144716",
+        "facilityID": "227",
+        "detailURL": "/tds/attraction/detail/227/",
+        "iconTags": [
+            "ライド/移動・周遊"
+        ],
+        "operatingStatus": "案内終了",
+        "operatingHoursTo": "18:30",
+        "updateTime": "18:23",
+        "area": "メディテレーニアンハーバー",
+        "name": "ディズニーシー・トランジットスチーマーライン"
+    }
+]
+```
+
+### グリーティング情報
+
+```json
+[
+    {
+        "character": "シェリーメイ",
+        "area": "アメリカンウォーターフロント",
+        "name": "ヴィレッジ・グリーティングプレイス",
+        "facilityID": "905",
+        "facilityName": "ヴィレッジ・グリーティングプレイス",
+        "imageURL": "https://media1.tokyodisneyresort.jp/images/adventure/greeting/31_thum_name.jpg?mod=20231101102750",
+        "useStandbyTimeStyle": false,
+        "updateTime": "19:26",
+        "operatinghours": [
+            {
+                "operatingHoursFrom": "9:30",
+                "operatingHoursTo": "20:00",
+                "operatingStatus": "案内終了"
+            }
+        ]
+    }
+]
+```
+
+### レストラン情報
+
+```json
+[
+    {
+        "area": "メディテレーニアンハーバー",
+        "detailURL": "/tds/restaurant/detail/400/",
+        "facilityID": "425",
+        "operatingHours": [
+            {
+                "operatingHoursTo": "19:30",
+                "operatingHoursFrom": "11:00",
+                "operatingStatus": "案内終了"
+            }
+        ],
+        "imageURL": "https://media1.tokyodisneyresort.jp/images/adventure/restaurant/522_thum_name.jpg?mod=20250218111452",
+        "name": "カフェ・ポルトフィーノ",
+        "iconTags": [],
+        "useStandbyTimeStyle": false,
+        "updateTime": "19:30"
+    }
+]
+```
+
+各エンドポイントは最新データを提供し、キャッシュメカニズムにより高速なレスポンスを実現しています。
 
 ## アーキテクチャ
 
@@ -22,25 +97,43 @@
 
 ### レポジトリ層
 
-- `FacilityRepository` - アトラクションとグリーティングの共通リポジトリインターフェース
-  - 共通のキャッシュロジックや施設タイプの抽象化を提供
+- `RepositoryProtocol` - すべてのリポジトリの基本インターフェース
+- `CacheableEntity` - キャッシュ可能なエンティティを定義するプロトコル
 - `AttractionRepository` - アトラクション情報の取得と管理を担当
 - `GreetingRepository` - グリーティング情報の取得と管理を担当
+- `RestaurantRepository` - レストラン情報の取得と管理を担当
 
-### APIクライアント層
+### API層
 
-- `TokyoDisneyResortClient` - ディズニーリゾートのWebサイトからデータを取得
-  - リトライロジックと強化されたエラーハンドリングを含む
+API層は以下の主要コンポーネントで構成されています：
+
+#### APIクライアント
+
+- `TokyoDisneyResortClient` - ディズニーリゾートのWebサイト、APIからデータを取得
 - `APIFetcher` - 汎用的なデータフェッチロジックを提供
-- `TokyoDisneyResortRequest` - リクエストの構築
+- `TokyoDisneyResortRequest` - リクエストの構築と設定
+- `TokyoDisneyResortRequestBuilder` - URLリクエストの構築
+
+#### パーサー層
+
 - `FacilityHTMLParser` - HTML解析の共通インターフェース
+- `FacilityErrorResolvable` - 施設タイプに応じたエラー解決プロトコル
+- 具体的な実装：
   - `AttractionHTMLParser` - アトラクション情報のHTML解析
   - `GreetingHTMLParser` - グリーティング情報のHTML解析
+  - `RestaurantHTMLParser` - レストラン情報のHTML解析
+
+#### データマッパー
+
+- `AttractionDataMapper` - 取得データからアトラクションモデルへの変換
+- `GreetingDataMapper` - 取得データからグリーティングモデルへの変換
+- `RestaurantDataMapper` - 取得データからレストランモデルへの変換
 
 ### データモデル
 
 - `Attraction` - アトラクション情報のデータモデル
 - `Greeting` - グリーティング情報のデータモデル
+- `Restaurant` - レストラン情報のデータモデル
 
 ### コントローラ層
 
@@ -48,8 +141,9 @@
 
 ### データストア
 
-- `CacheStoreProtocol` - キャッシュのインターフェース
-- `VaporCacheStore` - Vaporを利用したキャッシュ実装
+- `CacheStoreProtocol` - キャッシュ操作のインターフェース
+- `CacheStoreDependency` - キャッシュストアの依存関係を注入するためのプロトコル
+- `VaporCacheStore` - Vaporのキャッシュシステムを利用した実装
 
 ## 始め方
 

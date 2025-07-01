@@ -6,6 +6,7 @@
 //
 
 import SwiftSoup
+import Vapor
 
 /// 施設タイプに応じたエラー解決のためのプロトコル
 protocol FacilityErrorResolvable {

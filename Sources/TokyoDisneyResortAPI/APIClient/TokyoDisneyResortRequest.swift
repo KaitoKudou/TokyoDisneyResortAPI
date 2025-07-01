@@ -21,19 +21,6 @@ protocol TokyoDisneyResortRequest {
     var facilityType: FacilityType { get }
 }
 
-// パークタイプを表す列挙型
-enum ParkType: String {
-    case tdl // 東京ディズニーランド
-    case tds // 東京ディズニーシー
-}
-
-// 施設タイプを表す列挙型
-enum FacilityType: String {
-    case attraction // アトラクション情報
-    case greeting   // グリーティング情報
-    case restaurant // レストラン情報
-}
-
 extension TokyoDisneyResortRequest {
     // パークタイプと施設タイプに応じたURLを生成
     var baseURL: URL {
