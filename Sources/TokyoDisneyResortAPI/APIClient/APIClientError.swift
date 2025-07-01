@@ -12,7 +12,6 @@ import Vapor
 enum APIError: Error, AbortError, CustomStringConvertible {
     case invalidResponse
     case decodingFailed
-    case networkError(URLError)
     case unexpectedError((any Error)?)
     case rateLimited
     case tooManyRequests
@@ -26,8 +25,6 @@ enum APIError: Error, AbortError, CustomStringConvertible {
             return "Invalid response from server"
         case .decodingFailed:
             return "Failed to decode the response data"
-        case .networkError(let urlError):
-            return "Network error: \(urlError.localizedDescription)"
         case .unexpectedError(let error):
             return "Unexpected error: \(error?.localizedDescription ?? "Unknown error")"
         case .rateLimited:
@@ -48,8 +45,6 @@ enum APIError: Error, AbortError, CustomStringConvertible {
             return .badGateway
         case .decodingFailed:
             return .unprocessableEntity
-        case .networkError:
-            return .serviceUnavailable
         case .unexpectedError:
             return .internalServerError
         case .rateLimited, .tooManyRequests:

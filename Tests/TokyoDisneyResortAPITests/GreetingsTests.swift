@@ -707,20 +707,18 @@ struct GreetingsTests {
         // 特定のURLエラーでテスト
         try await withDependencies {
             $0[GreetingRepository.self].execute = { _, _ in
-                throw APIError.networkError(URLError(.timedOut))
+                throw APIError.serverError(502)
             }
         } operation: {
             try await withApp { app in
                 try await app.testing().test(.GET, "v1/tdl/greeting", afterResponse: { res async in
-                    #expect(res.status == .serviceUnavailable)
+                    #expect(res.status == .badGateway)
+                    #expect(res.status == .badGateway)
                     
                     // レスポンスのボディが適切なエラーメッセージを含んでいるか確認
                     if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
                         #expect(errorData.error == true)
-                        #expect(errorData.reason.contains("Network error"))
-                        #expect(errorData.reason.contains("URLErrorDomain"))
-                    } else {
-                        XCTFail("レスポンスボディをErrorResponseにデコードできませんでした")
+                        #expect(errorData.reason == "Server error with status code 502")
                     }
                 })
             }

@@ -231,12 +231,18 @@ struct AttractionsTests {
         try await withDependencies {
             // リポジトリのモックを設定してエラーをスローするように
             $0[AttractionRepository.self].execute = { _, _ in
-                throw APIError.networkError(URLError(.notConnectedToInternet))
+                throw APIError.serverError(502)
             }
         } operation: {
             try await withApp { app in
                 try await app.testing().test(.GET, "v1/tdl/attraction", afterResponse: { res async in
-                    #expect(res.status == .serviceUnavailable)
+                    #expect(res.status == .badGateway)
+                    
+                    // レスポンスのボディが適切なエラーメッセージを含んでいるか確認
+                    if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
+                        #expect(errorData.error == true)
+                        #expect(errorData.reason == "Server error with status code 502")
+                    }
                 })
             }
         }
@@ -479,32 +485,6 @@ struct AttractionsTests {
         }
     }
     
-    @Test("Test Network Error Handling")
-    func testNetworkErrorHandlingDetails() async throws {
-        // 特定のURLエラーでテスト
-        try await withDependencies {
-            $0[AttractionRepository.self].execute = { _, _ in
-                throw APIError.networkError(URLError(.timedOut))
-            }
-        } operation: {
-            try await withApp { app in
-                try await app.testing().test(.GET, "v1/tdl/attraction", afterResponse: { res async in
-                    #expect(res.status == .serviceUnavailable)
-                    
-                    // レスポンスのボディが適切なエラーメッセージを含んでいるか確認
-                    if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
-                        #expect(errorData.error == true)
-                        #expect(errorData.reason.contains("Network error"))
-                        // タイムアウトエラーの具体的なメッセージは実行環境によって異なるため、一般的なチェックに変更
-                        #expect(errorData.reason.contains("URLErrorDomain"))
-                    } else {
-                        XCTFail("レスポンスボディをErrorResponseにデコードできませんでした")
-                    }
-                })
-            }
-        }
-    }
-    
     @Test("Test Invalid Response Error")
     func testInvalidResponseError() async throws {
         try await withDependencies {
@@ -542,43 +522,5 @@ struct AttractionsTests {
                 })
             }
         }
-        
-        // networkErrorのテスト
-        try await withDependencies {
-            $0[AttractionRepository.self].execute = { _, _ in
-                throw HTMLParserError.networkError
-            }
-        } operation: {
-            try await withApp { app in
-                try await app.testing().test(.GET, "v1/tdl/attraction", afterResponse: { res async in
-                    #expect(res.status == .serviceUnavailable)
-                    
-                    // レスポンスのボディをJSONとしてデコード
-                    if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
-                        #expect(errorData.error == true)
-                        #expect(errorData.reason == "ネットワークエラーが発生しました")
-                    } else {
-                        XCTFail("レスポンスボディをErrorResponseにデコードできませんでした")
-                    }
-                })
-            }
-        }
-    }
-}
-
-
-// テストで使用するカスタムCodingKey
-private struct CustomCodingKey: CodingKey {
-    let stringValue: String
-    let intValue: Int?
-    
-    init?(stringValue: String) {
-        self.stringValue = stringValue
-        self.intValue = nil
-    }
-    
-    init?(intValue: Int) {
-        self.stringValue = "\(intValue)"
-        self.intValue = intValue
     }
 }

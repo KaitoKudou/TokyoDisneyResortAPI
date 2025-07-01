@@ -11,9 +11,9 @@ import Vapor
 enum HTMLParserError: Error, AbortError, CustomStringConvertible {
     case invalidHTML
     case parseError
-    case networkError
     case noAttractionFound
     case noGreetingFound
+    case noRestaurantFound
     
     /// エラーの説明 (CustomStringConvertible)
     var description: String {
@@ -22,12 +22,12 @@ enum HTMLParserError: Error, AbortError, CustomStringConvertible {
             return "HTMLデータの形式が無効です"
         case .parseError:
             return "HTMLデータの解析中にエラーが発生しました"
-        case .networkError:
-            return "ネットワークエラーが発生しました"
         case .noAttractionFound:
             return "アトラクション情報が見つかりませんでした"
         case .noGreetingFound:
             return "グリーティング情報が見つかりませんでした"
+        case .noRestaurantFound:
+            return "レストラン情報が見つかりませんでした"
         }
     }
     
@@ -36,9 +36,7 @@ enum HTMLParserError: Error, AbortError, CustomStringConvertible {
         switch self {
         case .invalidHTML, .parseError:
             return .unprocessableEntity
-        case .networkError:
-            return .serviceUnavailable
-        case .noAttractionFound, .noGreetingFound:
+        case .noAttractionFound, .noGreetingFound, .noRestaurantFound:
             return .notFound
         }
     }

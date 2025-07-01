@@ -7,6 +7,25 @@
 
 import SwiftSoup
 
+/// 施設タイプに応じたエラー解決のためのプロトコル
+protocol FacilityErrorResolvable {
+    /// 施設が見つからない場合に投げるエラー
+    static var notFoundError: HTMLParserError { get }
+}
+
+// 各モデルに対するエラー定義の拡張
+extension Attraction: FacilityErrorResolvable {
+    static var notFoundError: HTMLParserError { return .noAttractionFound }
+}
+
+extension Restaurant: FacilityErrorResolvable {
+    static var notFoundError: HTMLParserError { return .noRestaurantFound }
+}
+
+extension Greeting: FacilityErrorResolvable {
+    static var notFoundError: HTMLParserError { return .noGreetingFound }
+}
+
 /// HTML文書から施設情報を抽出する共通プロトコル
 protocol FacilityHTMLParser: Sendable {
     associatedtype FacilityType
@@ -66,9 +85,23 @@ extension FacilityHTMLParser {
         }
         
         if facilities.isEmpty {
-            throw HTMLParserError.parseError
+            // 型安全な方法でエラーを選択
+            throw getNotFoundError(for: FacilityType.self)
         }
         
         return facilities
+    }
+    
+    /// 施設タイプに応じた適切なNotFoundエラーを取得する
+    /// - Parameter type: 施設タイプ
+    /// - Returns: 適切なHTMLParserError
+    private func getNotFoundError<T>(for type: T.Type) -> HTMLParserError {
+        // タイプキャストを試行して適切なエラーを返す
+        if let errorResolvable = T.self as? (any FacilityErrorResolvable.Type) {
+            return errorResolvable.notFoundError
+        }
+        
+        // デフォルトのエラー
+        return .parseError
     }
 }
