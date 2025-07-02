@@ -15,6 +15,10 @@ let package = Package(
         .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.8.7"),
         // swift-dependencies
         .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.9.2"),
+        // OpenAPI
+        .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.3.0"),
+        .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.5.0"),
+        .package(url: "https://github.com/swift-server/swift-openapi-vapor", from: "1.0.1"),
     ],
     targets: [
         .executableTarget(
@@ -25,8 +29,14 @@ let package = Package(
                 .product(name: "NIOPosix", package: "swift-nio"),
                 .product(name: "SwiftSoup", package: "SwiftSoup"),
                 .product(name: "Dependencies", package: "swift-dependencies"),
+                // OpenAPI
+                .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
+                .product(name: "OpenAPIVapor", package: "swift-openapi-vapor"),
             ],
-            swiftSettings: swiftSettings
+            swiftSettings: swiftSettings,
+            plugins: [
+                .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator"),
+            ]
         ),
         .testTarget(
             name: "TokyoDisneyResortAPITests",

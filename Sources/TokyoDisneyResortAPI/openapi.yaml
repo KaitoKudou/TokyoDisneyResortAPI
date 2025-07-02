@@ -1,0 +1,200 @@
+openapi: '3.1.0'
+info:
+  title: TokyoDisneyResortAPI
+  version: 1.0.0
+  description: |
+    東京ディズニーリゾート（東京ディズニーランド/東京ディズニーシー）の施設運営情報を提供するAPI
+servers:
+  - url: http://127.0.0.1/v1
+    description: 東京ディズニーランド/東京ディズニーシーの施設運営情報API
+paths:
+  /{parkType}/attraction:
+    get:
+      operationId: getAttractionStatus
+      parameters:
+      - name: parkType
+        required: true
+        in: path
+        description: 東京ディズニーランド/東京ディズニーシーのアトラクション運営情報を返す
+        schema:
+          type: string
+          enum: ['tdl', 'tds']
+      responses:
+        '200':
+          description: アトラクション運営情報取得に成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Attraction'
+        '404':
+          description: アトラクション運営情報が見つかりません
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+        '502':
+          description: ゲートウェイエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIError'
+components:
+  schemas:
+    Attraction:
+      type: object
+      required:
+        - area
+        - name
+        - iconTags
+      properties:
+        area:
+          type: string
+          description: エリア名
+          example: "メディテレーニアンハーバー"
+        name:
+          type: string
+          description: アトラクション名
+          example: "ディズニーシー・トランジットスチーマーライン"
+        iconTags:
+          type: array
+          description: タグのリスト
+          items:
+            type: string
+          example: ["ライド/移動・周遊", "ディズニー・プレミアアクセス対象"]
+        imageURL:
+          type: string
+          format: uri
+          description: サムネイルURL
+          example: "https://media1.tokyodisneyresort.jp/images/adventure/attraction/121_thum_name.jpg"
+        detailURL:
+          type: string
+          description: 詳細ページのURL
+          example: "/tds/attraction/detail/227/"
+        facilityID:
+          type: string
+          description: 施設ID
+          example: "227"
+        facilityStatus:
+          type: string
+          description: 施設の運営状況
+          example: "運営・公演中止"
+        standbyTime:
+          type: string
+          description: アトラクションの待ち時間
+          example: "30"
+        operatingStatus:
+          type: string
+          description: 運営状況
+          example: "案内終了"
+        dpaStatus:
+          type: string
+          description: DPAの発券状況
+          example: "販売していません"
+        fsStatus:
+          type: string
+          description: その他パスの発券状況
+          example: "40周年記念プライオリティパス発行なし"
+        updateTime:
+          type: string
+          description: 最終更新時間
+          example: "21:00"
+        operatingHoursFrom:
+          type: string
+          description: 案内開始時間
+          example: "9:00"
+        operatingHoursTo:
+          type: string
+          description: 案内終了時間
+          example: "21:00"
+    Error:
+      type: object
+      required:
+        - status
+        - reason
+      properties:
+        status:
+          type: integer
+          format: int32
+          description: HTTPステータスコード
+          example: 400
+        reason:
+          type: string
+          description: エラーの理由
+          example: "無効なリクエストパラメータ"
+    APIError:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: エラータイプ
+          example: "invalidResponse"
+        message:
+          type: string
+          description: エラーメッセージ
+          example: "Invalid response from server"
+    HTMLParserError:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: エラータイプ
+          enum:
+            - invalidHTML
+            - parseError
+            - noAttractionFound
+            - noGreetingFound
+            - noRestaurantFound
+          example: "invalidHTML"
+        message:
+          type: string
+          description: エラーメッセージ
+          example: "HTMLデータの形式が無効です"
+  responses:
+    BadRequest:
+      description: リクエストパラメータが無効です
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: リクエストされたリソースが見つかりません
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    UnprocessableEntity:
+      description: 処理できないエンティティ
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/APIError'
+              - $ref: '#/components/schemas/HTMLParserError'
+    TooManyRequests:
+      description: リクエスト制限を超えました
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/APIError'
+    ServerError:
+      description: サーバー内部エラー
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
