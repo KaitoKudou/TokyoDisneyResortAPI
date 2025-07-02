@@ -170,19 +170,23 @@ enum StandbyTime: Codable, Equatable {
         case .string(let value):
             try container.encode(value)
         case .boolean(let value):
-            try container.encode(value)
+            if value {
+                try container.encode("true")
+            } else {
+                try container.encodeNil()
+            }
         case .integer(let value):
-            try container.encode(value)
+            try container.encode(String(value))
         }
     }
     
-    // 文字列表現を返すためのヘルパーメソッド
-    var description: String {
+    // APIで使用するための変換メソッド
+    var value: String? {
         switch self {
         case .string(let value):
             return value
         case .boolean(let value):
-            return value ? "true" : "false"
+            return value ? "true" : nil
         case .integer(let value):
             return String(value)
         }
