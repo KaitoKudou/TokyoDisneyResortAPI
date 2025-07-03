@@ -8,7 +8,7 @@
 import Vapor
 
 /// HTML パース処理で発生する可能性のあるエラー
-enum HTMLParserError: Error, AbortError, CustomStringConvertible {
+enum HTMLParserError: AbortError, CustomStringConvertible {
     case invalidHTML
     case parseError
     case noAttractionFound
@@ -39,10 +39,5 @@ enum HTMLParserError: Error, AbortError, CustomStringConvertible {
         case .noAttractionFound, .noGreetingFound, .noRestaurantFound:
             return .notFound
         }
-    }
-    
-    /// AbortError プロトコルへの準拠 - クライアントに送信するエラー理由
-    var reason: String {
-        return description
     }
 }

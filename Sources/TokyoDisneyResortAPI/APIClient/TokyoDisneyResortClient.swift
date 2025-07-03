@@ -42,7 +42,7 @@ struct TokyoDisneyResortClient: Sendable {
             // 成功
             break
         case 429:
-            throw APIError.tooManyRequests
+            throw Abort(.tooManyRequests)
         case 500...599:
             throw APIError.serverError(httpResponse.statusCode)
         default:
@@ -95,7 +95,7 @@ struct TokyoDisneyResortClient: Sendable {
             // 成功
             break
         case 429:
-            throw APIError.tooManyRequests
+            throw Abort(.tooManyRequests)
         case 500...599:
             throw APIError.serverError(httpResponse.statusCode)
         default:

@@ -28,14 +28,17 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Attraction'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '404':
           description: アトラクション運営情報が見つかりません
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '400':
-          $ref: '#/components/responses/BadRequest'
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                statusCode: 404
+                message: "アトラクション情報が見つかりませんでした"
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
         '429':
@@ -47,7 +50,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/APIError'
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                statusCode: 502
+                message: "外部サービスとの通信に失敗しました"
 components:
   schemas:
     Attraction:
@@ -116,85 +122,55 @@ components:
           type: string
           description: 案内終了時間
           example: "21:00"
-    Error:
+    ErrorResponse:
       type: object
       required:
-        - status
-        - reason
+        - statusCode
+        - message
       properties:
-        status:
+        statusCode:
           type: integer
           format: int32
           description: HTTPステータスコード
           example: 400
-        reason:
+        message:
           type: string
-          description: エラーの理由
+          description: エラーメッセージ
           example: "無効なリクエストパラメータ"
-    APIError:
-      type: object
-      required:
-        - error
-        - message
-      properties:
-        error:
-          type: string
-          description: エラータイプ
-          example: "invalidResponse"
-        message:
-          type: string
-          description: エラーメッセージ
-          example: "Invalid response from server"
-    HTMLParserError:
-      type: object
-      required:
-        - error
-        - message
-      properties:
-        error:
-          type: string
-          description: エラータイプ
-          enum:
-            - invalidHTML
-            - parseError
-            - noAttractionFound
-            - noGreetingFound
-            - noRestaurantFound
-          example: "invalidHTML"
-        message:
-          type: string
-          description: エラーメッセージ
-          example: "HTMLデータの形式が無効です"
   responses:
     BadRequest:
       description: リクエストパラメータが無効です
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
-    NotFound:
-      description: リクエストされたリソースが見つかりません
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            statusCode: 400
+            message: "無効なパラメータが含まれています"
     UnprocessableEntity:
       description: 処理できないエンティティ
       content:
         application/json:
           schema:
-            oneOf:
-              - $ref: '#/components/schemas/APIError'
-              - $ref: '#/components/schemas/HTMLParserError'
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            statusCode: 422
+            message: "リクエストデータの処理に失敗しました"
     TooManyRequests:
       description: リクエスト制限を超えました
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/APIError'
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            statusCode: 429
+            message: "リクエスト回数の上限に達しました。しばらく時間をおいて再試行してください"
     ServerError:
       description: サーバー内部エラー
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            statusCode: 500
+            message: "サーバー内部でエラーが発生しました"

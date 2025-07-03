@@ -58,7 +58,8 @@ extension FacilityHTMLParser {
             let document = try SwiftSoup.parse(htmlString)
             return try extractFacilities(from: document)
         } catch is Exception {
-            throw HTMLParserError.parseError
+            let error = HTMLParserError.parseError
+            throw Abort(error.status, reason: error.reason)
         } catch {
             throw error
         }
@@ -71,7 +72,8 @@ extension FacilityHTMLParser {
         let facilityLiItems = try document.select("li[data-categorize]")
         
         if facilityLiItems.isEmpty() {
-            throw HTMLParserError.parseError
+            let error = HTMLParserError.parseError
+            throw Abort(error.status, reason: error.reason)
         }
         
         // 各施設の情報を解析
@@ -87,7 +89,8 @@ extension FacilityHTMLParser {
         
         if facilities.isEmpty {
             // 型安全な方法でエラーを選択
-            throw getNotFoundError(for: FacilityType.self)
+            let error = getNotFoundError(for: FacilityType.self)
+            throw Abort(error.status, reason: error.reason)
         }
         
         return facilities
