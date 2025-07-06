@@ -18,7 +18,7 @@ struct GreetingDataMapper: Sendable {
         basicInfoList: [Greeting],
         operatingStatusList: [Greeting]
     ) -> [Greeting] {
-        var attractions = [Greeting]()
+        var greetings = [Greeting]()
         
         for basicInfo in basicInfoList {
             // 名前がマッチする運営状況を検索
@@ -26,7 +26,7 @@ struct GreetingDataMapper: Sendable {
             
             // 運営状況があれば統合した Greeting 構造体を作成
             if let status = matchingStatus {
-                let attraction = Greeting(
+                let greeting = Greeting(
                     area: basicInfo.area,
                     name: basicInfo.name,
                     character: basicInfo.character,
@@ -40,14 +40,14 @@ struct GreetingDataMapper: Sendable {
                     useStandbyTimeStyle: status.useStandbyTimeStyle,
                     updateTime: status.updateTime,
                 )
-                attractions.append(attraction)
+                greetings.append(greeting)
             } else {
-                // 運営状況がなければ基本情報のみのAttractionを追加
-                attractions.append(basicInfo)
+                // 運営状況がなければ基本情報のみのGreetingを追加
+                greetings.append(basicInfo)
             }
         }
         
-        return attractions
+        return greetings
     }
     
     /// 基本情報に対応する運営状況を検索

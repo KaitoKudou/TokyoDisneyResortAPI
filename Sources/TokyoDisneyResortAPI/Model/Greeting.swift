@@ -109,6 +109,7 @@ struct Greeting: Codable {
         try container.encodeIfPresent(name, forKey: .name)
         try container.encodeIfPresent(character, forKey: .character)
         try container.encodeIfPresent(imageURL, forKey: .imageURL)
+        try container.encodeIfPresent(detailURL, forKey: .detailURL)
         try container.encodeIfPresent(facilityID, forKey: .facilityID)
         try container.encodeIfPresent(facilityName, forKey: .facilityName)
         try container.encodeIfPresent(facilityStatus, forKey: .facilityStatus)
