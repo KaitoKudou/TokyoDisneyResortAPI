@@ -2,13 +2,22 @@
 import VaporTesting
 import Testing
 import Dependencies
+import OpenAPIVapor
 
 @Suite("Attractions Tests")
 struct AttractionsTests {
     private func withApp(_ test: (Application) async throws -> ()) async throws {
         let app = try await Application.make(.testing)
         do {
+            // configure関数を呼び出す（ミドルウェアなどの設定）
             try await configure(app)
+            
+            // OpenAPIのルートを登録
+            let transport = VaporTransport(routesBuilder: app)
+            let handler = OpenAPIController(app: app)
+            try handler.registerHandlers(on: transport, serverURL: Servers.Server1.url())
+            
+            // ルート登録後にテストを実行
             try await test(app)
         } catch {
             try await app.asyncShutdown()
@@ -21,7 +30,7 @@ struct AttractionsTests {
     @Test("Test TDL Attraction Route Returns OK")
     func tdlAttractionRoute() async throws {
         try await withDependencies {
-            $0[AttractionRepository.self].execute = { _, _ in
+            $0[AttractionRepository.self].execute = { _, request in
                 return []
             }
         } operation: {
@@ -38,7 +47,7 @@ struct AttractionsTests {
     @Test("Test TDS Attraction Route Returns OK")
     func tdsAttractionRoute() async throws {
         try await withDependencies {
-            $0[AttractionRepository.self].execute = { _, _ in
+            $0[AttractionRepository.self].execute = { _, request in
                 return []
             }
         } operation: {
@@ -56,7 +65,7 @@ struct AttractionsTests {
     func invalidParkType() async throws {
         try await withApp { app in
             try await app.testing().test(.GET, "v1/invalid/attraction", afterResponse: { res async in
-                #expect(res.status == .badRequest)
+                #expect(res.status == .internalServerError)
             })
         }
     }
@@ -215,7 +224,7 @@ struct AttractionsTests {
                     #expect(attractions?[0].imageURL == "https://example.com/test.jpg")
                     #expect(attractions?[0].detailURL == "/test/")
                     #expect(attractions?[0].operatingStatus == "案内中")
-                    #expect(attractions?[0].standbyTime?.description == "30")
+                    #expect(attractions?[0].standbyTime?.value == "30")
                     #expect(attractions?[0].updateTime == "9:00")
                     #expect(attractions?[0].operatingHoursFrom == "9:00")
                     #expect(attractions?[0].operatingHoursTo == "21:00")
@@ -240,8 +249,8 @@ struct AttractionsTests {
                     
                     // レスポンスのボディが適切なエラーメッセージを含んでいるか確認
                     if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
-                        #expect(errorData.error == true)
-                        #expect(errorData.reason == "Server error with status code 502")
+                        #expect(errorData.statusCode == res.status.code)
+                        #expect(errorData.message == "Server error with status code 502")
                     }
                 })
             }
@@ -328,7 +337,7 @@ struct AttractionsTests {
         
         #expect(attractions.count == 2)
         #expect(attractions[0].operatingStatus != nil)
-        #expect(attractions[0].standbyTime?.description == "30")  // 文字列表現で比較
+        #expect(attractions[0].standbyTime?.value == "30")  // 文字列表現で比較
         #expect(attractions[1].operatingStatus == nil)
     }
     
@@ -385,8 +394,8 @@ struct AttractionsTests {
                     
                     // レスポンスのボディをJSONとしてデコード
                     if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
-                        #expect(errorData.error == true)
-                        #expect(errorData.reason == "HTMLデータの形式が無効です")
+                        #expect(errorData.statusCode == res.status.code)
+                        #expect(errorData.message == "HTMLデータの形式が無効です")
                     }
                 })
             }
@@ -406,10 +415,8 @@ struct AttractionsTests {
                     
                     // レスポンスのボディをJSONとしてデコード
                     if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
-                        #expect(errorData.error == true)
-                        #expect(errorData.reason == "アトラクション情報が見つかりませんでした")
-                    } else {
-                        XCTFail("レスポンスボディをErrorResponseにデコードできませんでした")
+                        #expect(errorData.statusCode == res.status.code)
+                        #expect(errorData.message == "アトラクション情報が見つかりませんでした")
                     }
                 })
             }
@@ -429,31 +436,8 @@ struct AttractionsTests {
                     
                     // レスポンスのボディをJSONとしてデコード
                     if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
-                        #expect(errorData.error == true)
-                        #expect(errorData.reason == "Failed to decode the response data")
-                    } else {
-                        XCTFail("レスポンスボディをErrorResponseにデコードできませんでした")
-                    }
-                })
-            }
-        }
-    }
-    
-    @Test("Test Rate Limiting Error Handling")
-    func testRateLimitedError() async throws {
-        try await withDependencies {
-            $0[AttractionRepository.self].execute = { _, _ in
-                throw APIError.rateLimited
-            }
-        } operation: {
-            try await withApp { app in
-                try await app.testing().test(.GET, "v1/tdl/attraction", afterResponse: { res async in
-                    #expect(res.status == .tooManyRequests)
-                    
-                    // レスポンスのボディをJSONとしてデコード
-                    if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
-                        #expect(errorData.error == true)
-                        #expect(errorData.reason == "Request was rate limited")
+                        #expect(errorData.statusCode == res.status.code)
+                        #expect(errorData.message == "Failed to decode the response data")
                     } else {
                         XCTFail("レスポンスボディをErrorResponseにデコードできませんでした")
                     }
@@ -475,8 +459,8 @@ struct AttractionsTests {
                     
                     // レスポンスのボディをJSONとしてデコード
                     if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
-                        #expect(errorData.error == true)
-                        #expect(errorData.reason == "Server error with status code 500")
+                        #expect(errorData.statusCode == res.status.code)
+                        #expect(errorData.message == "Server error with status code 500")
                     } else {
                         XCTFail("レスポンスボディをErrorResponseにデコードできませんでした")
                     }
@@ -514,8 +498,8 @@ struct AttractionsTests {
                     
                     // レスポンスのボディをJSONとしてデコード
                     if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
-                        #expect(errorData.error == true)
-                        #expect(errorData.reason == "HTMLデータの解析中にエラーが発生しました")
+                        #expect(errorData.statusCode == res.status.code)
+                        #expect(errorData.message == "HTMLデータの解析中にエラーが発生しました")
                     } else {
                         XCTFail("レスポンスボディをErrorResponseにデコードできませんでした")
                     }

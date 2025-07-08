@@ -20,30 +20,26 @@ struct OpenAPIController: APIProtocol {
     }
     
     func getAttractionStatus(_ input: Operations.getAttractionStatus.Input) async throws -> Operations.getAttractionStatus.Output {
+        let parkTypeString = input.path.parkType.rawValue
+        guard let parkType = ParkType(rawValue: parkTypeString) else {
+            // 不正なパークタイプの場合はBadRequestを返す
+            let errorResponse = Components.Schemas.ErrorResponse(
+                statusCode: 400,
+                message: "Invalid park type. Use 'tdl' for Tokyo Disneyland or 'tds' for Tokyo DisneySea"
+            )
+            return .badRequest(.init(body: .json(errorResponse)))
+        }
+        
+        // 空のリクエストを作成 (リポジトリがVapor.Requestを必要とするため)
+        let request = Request(application: app, on: app.eventLoopGroup.next())
+        
         do {
-            // パラメータからparkTypeを取得
-            // parkType は既に String型の列挙型として定義されている
-            let parkTypeString = input.path.parkType.rawValue
-            guard let parkType = ParkType(rawValue: parkTypeString) else {
-                let errorResponse = Components.Schemas._Error(
-                    status: 400,
-                    reason: "Invalid park type. Use 'tdl' for Tokyo Disneyland or 'tds' for Tokyo DisneySea"
-                )
-                return .badRequest(.init(body: .json(errorResponse)))
-            }
-            
-            // 空のリクエストを作成 (リポジトリがVapor.Requestを必要とするため)
-            let request = Request(application: app, on: app.eventLoopGroup.next())
-            
-            // リポジトリからアトラクションデータを取得
             let attractions = try await attractionRepository.execute(
                 parkType,
                 request
             )
             
-            // モデルの型を変換
             let openAPIAttractions = attractions.map { attraction -> Components.Schemas.Attraction in
-                
                 return Components.Schemas.Attraction(
                     area: attraction.area,
                     name: attraction.name,
@@ -62,34 +58,48 @@ struct OpenAPIController: APIProtocol {
                 )
             }
             
-            // 成功レスポンスを返す
             return .ok(.init(body: .json(openAPIAttractions)))
-            
-        } catch let error as Abort {
-            // Abortエラーの種類に応じて適切なレスポンスを返す
-            app.logger.error("Failed to get attraction data: \(error.reason)")
-            
-            let errorResponse = Components.Schemas._Error(
-                status: Int32(error.status.code),
-                reason: error.reason
+        } catch let error as APIError {
+            let statusCode = Int32(error.status.code)
+            let errorResponse = Components.Schemas.ErrorResponse(
+                statusCode: statusCode,
+                message: error.description
             )
             
-            switch error.status.code {
+            switch statusCode {
             case 400:
                 return .badRequest(.init(body: .json(errorResponse)))
             case 404:
                 return .notFound(.init(body: .json(errorResponse)))
+            case 422:
+                return .unprocessableContent(.init(body: .json(errorResponse)))
+            case 502:
+                return .badGateway(.init(body: .json(errorResponse)))
             default:
                 return .internalServerError(.init(body: .json(errorResponse)))
             }
             
-        } catch {
-            // その他のエラーは500エラーとしてラップ
-            app.logger.error("Failed to get attraction data: \(error.localizedDescription)")
+        } catch let error as HTMLParserError {
+            let statusCode = Int32(error.status.code)
+            let errorResponse = Components.Schemas.ErrorResponse(
+                statusCode: statusCode,
+                message: error.description
+            )
             
-            let errorResponse = Components.Schemas._Error(
-                status: 500,
-                reason: "Failed to get attraction data: \(error.localizedDescription)"
+            if statusCode == 422 {
+                return .unprocessableContent(.init(body: .json(errorResponse)))
+            } else if statusCode == 400 {
+                return .badRequest(.init(body: .json(errorResponse)))
+            } else if statusCode == 404 {
+                return .notFound(.init(body: .json(errorResponse)))
+            } else {
+                return .internalServerError(.init(body: .json(errorResponse)))
+            }
+            
+        } catch {
+            let errorResponse = Components.Schemas.ErrorResponse(
+                statusCode: 500,
+                message: "サーバー内部エラーが発生しました"
             )
             return .internalServerError(.init(body: .json(errorResponse)))
         }
