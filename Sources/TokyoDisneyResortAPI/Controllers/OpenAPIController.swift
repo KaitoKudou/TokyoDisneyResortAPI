@@ -30,14 +30,8 @@ struct OpenAPIController: APIProtocol {
             return .badRequest(.init(body: .json(errorResponse)))
         }
         
-        // 空のリクエストを作成 (リポジトリがVapor.Requestを必要とするため)
-        let request = Request(application: app, on: app.eventLoopGroup.next())
-        
         do {
-            let attractions = try await attractionRepository.execute(
-                parkType,
-                request
-            )
+            let attractions = try await attractionRepository.execute(parkType)
             
             let openAPIAttractions = attractions.map { attraction -> Components.Schemas.Attraction in
                 return Components.Schemas.Attraction(

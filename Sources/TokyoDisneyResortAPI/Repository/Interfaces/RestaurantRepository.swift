@@ -15,5 +15,5 @@ struct RestaurantRepository {
     ///   - parkType: パークの種類（TDL/TDS）
     ///   - request: HTTPリクエスト（キャッシュアクセスに使用）
     /// - Returns: 統合されたアトラクション情報
-    var execute: @Sendable (_ parkType: ParkType, _ request: Request) async throws -> [Restaurant]
+    var execute: @Sendable (_ parkType: ParkType) async throws -> [Restaurant]
 }

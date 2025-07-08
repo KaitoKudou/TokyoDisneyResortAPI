@@ -15,5 +15,5 @@ struct GreetingRepository {
     ///   - parkType: パークの種類（TDL/TDS）
     ///   - request: HTTPリクエスト（キャッシュアクセスに使用）
     /// - Returns: 統合されたグリーティング情報
-    var execute: @Sendable (_ parkType: ParkType, _ request: Request) async throws -> [Greeting]
+    var execute: @Sendable (_ parkType: ParkType) async throws -> [Greeting]
 }

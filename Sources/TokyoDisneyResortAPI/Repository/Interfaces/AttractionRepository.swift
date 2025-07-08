@@ -5,8 +5,6 @@
 //  Created by 工藤 海斗 on 2025/05/05.
 //
 
-import Vapor
-
 struct AttractionRepository {
     typealias T = Attraction
     
@@ -15,5 +13,5 @@ struct AttractionRepository {
     ///   - parkType: パークの種類（TDL/TDS）
     ///   - request: HTTPリクエスト（キャッシュアクセスに使用）
     /// - Returns: 統合されたアトラクション情報
-    var execute: @Sendable (_ parkType: ParkType, _ request: Request) async throws -> [Attraction]
+    var execute: @Sendable (_ parkType: ParkType) async throws -> [Attraction]
 }

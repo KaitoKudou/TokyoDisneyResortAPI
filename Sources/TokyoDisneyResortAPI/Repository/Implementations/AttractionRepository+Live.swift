@@ -24,6 +24,7 @@ extension AttractionRepository: CacheableEntity {
 extension AttractionRepository: DependencyKey {
     static var liveValue: Self {
         @Dependency(\.cacheStore) var cacheStore
+        @Dependency(\.request) var request
         
         let apiFetcher = APIFetcher<Attraction>()
         let attractionHTMLParser: AttractionHTMLParser = .init()
@@ -32,12 +33,11 @@ extension AttractionRepository: DependencyKey {
         let facilityType: FacilityType = .attraction
         
         return .init(
-            execute: { parkType, request in
+            execute: { parkType in
                 // キャッシュからの取得を試みる
                 if let cachedAttractions = try await cacheStore.get(
                     cacheKey(for: parkType),
-                    as: [Attraction].self,
-                    request: request
+                    as: [Attraction].self
                 ) {
                     request.logger.info("Using cached integrated attractions for \(parkType.rawValue)")
                     return cachedAttractions
@@ -55,8 +55,7 @@ extension AttractionRepository: DependencyKey {
                     
                     async let operatingStatusTask = apiFetcher.fetchOperatingStatus(
                         parkType: parkType,
-                        facilityType: facilityType,
-                        request: request
+                        facilityType: facilityType
                     )
                     
                     // 並行して取得した情報を待機
@@ -72,8 +71,7 @@ extension AttractionRepository: DependencyKey {
                     try await cacheStore.set(
                         cacheKey(for: parkType),
                         to: attractions,
-                        expiresIn: cacheExpirationTime,
-                        request: request
+                        expiresIn: cacheExpirationTime
                     )
                     
                     return attractions

@@ -24,6 +24,7 @@ extension GreetingRepository: CacheableEntity {
 extension GreetingRepository: DependencyKey {
     static var liveValue: Self {
         @Dependency(\.cacheStore) var cacheStore
+        @Dependency(\.request) var request
         
         let apiFetcher = APIFetcher<Greeting>()
         let greetingHTMLParser: GreetingHTMLParser = .init()
@@ -32,12 +33,11 @@ extension GreetingRepository: DependencyKey {
         let facilityType: FacilityType = .greeting
         
         return .init(
-            execute: { parkType, request in
+            execute: { parkType in
                 // キャッシュからの取得を試みる
                 if let cachedGreetings = try await cacheStore.get(
                     cacheKey(for: parkType),
-                    as: [Greeting].self,
-                    request: request
+                    as: [Greeting].self
                 ) {
                     request.logger.info("Using cached greeting info for \(parkType.rawValue)")
                     return cachedGreetings
@@ -55,8 +55,7 @@ extension GreetingRepository: DependencyKey {
                     
                     async let operatingStatusTask = apiFetcher.fetchOperatingStatus(
                         parkType: parkType,
-                        facilityType: facilityType,
-                        request: request
+                        facilityType: facilityType
                     )
                     
                     // 並行して取得した情報を待機
@@ -72,8 +71,7 @@ extension GreetingRepository: DependencyKey {
                     try await cacheStore.set(
                         cacheKey(for: parkType),
                         to: greetings,
-                        expiresIn: cacheExpirationTime,
-                        request: request
+                        expiresIn: cacheExpirationTime
                     )
                     
                     return greetings

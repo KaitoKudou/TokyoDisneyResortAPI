@@ -25,18 +25,19 @@ extension RestaurantRepository: DependencyKey {
     
     static var liveValue: Self {
         @Dependency(\.cacheStore) var cacheStore
+        @Dependency(\.request) var request
+        
         let apiFetcher = APIFetcher<Restaurant>()
         let restaurantHTMLParser: RestaurantHTMLParser = .init()
         let dataMapper: RestaurantDataMapper = .init()
         let facilityType: FacilityType = .restaurant
         
         return .init(
-            execute: { parkType, request in
+            execute: { parkType in
                 // キャッシュからの取得を試みる
                 if let cachedRestaurants = try await cacheStore.get(
                     cacheKey(for: parkType),
-                    as: [Restaurant].self,
-                    request: request
+                    as: [Restaurant].self
                 ) {
                     request.logger.info("Using cached restaurant info for \(parkType.rawValue)")
                     return cachedRestaurants
@@ -54,8 +55,7 @@ extension RestaurantRepository: DependencyKey {
                     
                     async let operatingStatusTask = try await apiFetcher.fetchOperatingStatus(
                         parkType: parkType,
-                        facilityType: facilityType,
-                        request: request
+                        facilityType: facilityType
                     )
                     
                     // 並行して取得した情報を待機
@@ -71,8 +71,7 @@ extension RestaurantRepository: DependencyKey {
                     try await cacheStore.set(
                         cacheKey(for: parkType),
                         to: restaurants,
-                        expiresIn: cacheExpirationTime,
-                        request: request
+                        expiresIn: cacheExpirationTime
                     )
                     
                     return restaurants

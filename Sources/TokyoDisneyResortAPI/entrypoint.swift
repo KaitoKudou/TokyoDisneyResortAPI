@@ -19,7 +19,8 @@ enum Entrypoint {
         // let executorTakeoverSuccess = NIOSingletons.unsafeTryInstallSingletonPosixEventLoopGroupAsConcurrencyGlobalExecutor()
         // app.logger.debug("Tried to install SwiftNIO's EventLoopGroup as Swift's global concurrency executor", metadata: ["success": .stringConvertible(executorTakeoverSuccess)])
         
-        let transport = VaporTransport(routesBuilder: app)
+        let requestInjectionMiddleware = OpenAPIRequestInjectionMiddleware()
+        let transport = VaporTransport(routesBuilder: app.grouped(requestInjectionMiddleware))
         let handler = OpenAPIController(app: app)
         try handler.registerHandlers(on: transport, serverURL: Servers.Server1.url())
         

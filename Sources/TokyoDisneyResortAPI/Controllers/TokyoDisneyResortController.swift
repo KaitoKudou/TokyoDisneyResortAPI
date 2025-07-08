@@ -31,10 +31,7 @@ struct TokyoDisneyResortController: RouteCollection {
         }
         
         do {
-            let attractions = try await attractionRepository.execute(
-                parkType,
-                request
-            )
+            let attractions = try await attractionRepository.execute(parkType)
             
             let response = Response(status: HTTPResponseStatus.ok)
             response.headers.contentType = .json
@@ -61,10 +58,7 @@ struct TokyoDisneyResortController: RouteCollection {
         }
         
         do {
-            let greetings = try await greetingRepository.execute(
-                parkType,
-                request
-            )
+            let greetings = try await greetingRepository.execute(parkType)
             
             let response = Response(status: HTTPResponseStatus.ok)
             response.headers.contentType = .json
@@ -90,10 +84,7 @@ struct TokyoDisneyResortController: RouteCollection {
         }
         
         do {
-            let restaurants = try await restaurantRepository.execute(
-                parkType,
-                request
-            )
+            let restaurants = try await restaurantRepository.execute(parkType)
             
             let response = Response(status: HTTPResponseStatus.ok)
             response.headers.contentType = .json

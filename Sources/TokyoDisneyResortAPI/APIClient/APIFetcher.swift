@@ -5,6 +5,7 @@
 //  Created by GitHub Copilot on 2025/06/19.
 //
 
+import Dependencies
 import Foundation
 import Vapor
 
@@ -58,9 +59,10 @@ struct APIFetcher<T: Codable & Sendable>: Sendable {
     /// - Returns: デコードされた施設情報
     func fetchOperatingStatus(
         parkType: ParkType, 
-        facilityType: FacilityType, 
-        request: Request
+        facilityType: FacilityType
     ) async throws -> [T] {
+        @Dependency(\.request) var request
+        
         do {
             // API クライアントから運営状況データを取得
             let jsonData = try await apiClient.fetchOperatingStatus(

@@ -8,7 +8,7 @@
 import Vapor
 
 protocol CacheStoreProtocol: Sendable {
-    func get<T: Codable & Sendable>(_ key: String, as type: T.Type, request: Request) async throws -> T?
+    func get<T: Codable & Sendable>(_ key: String, as type: T.Type) async throws -> T?
     
-    func set<T: Codable & Sendable>(_ key: String, to value: T, expiresIn: CacheExpirationTime, request: Request) async throws
+    func set<T: Codable & Sendable>(_ key: String, to value: T, expiresIn: CacheExpirationTime) async throws
 }

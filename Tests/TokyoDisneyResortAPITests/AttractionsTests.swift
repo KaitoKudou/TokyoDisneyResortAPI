@@ -13,7 +13,8 @@ struct AttractionsTests {
             try await configure(app)
             
             // OpenAPIのルートを登録
-            let transport = VaporTransport(routesBuilder: app)
+            let requestInjectionMiddleware = OpenAPIRequestInjectionMiddleware()
+            let transport = VaporTransport(routesBuilder: app.grouped(requestInjectionMiddleware))
             let handler = OpenAPIController(app: app)
             try handler.registerHandlers(on: transport, serverURL: Servers.Server1.url())
             
@@ -30,7 +31,7 @@ struct AttractionsTests {
     @Test("Test TDL Attraction Route Returns OK")
     func tdlAttractionRoute() async throws {
         try await withDependencies {
-            $0[AttractionRepository.self].execute = { _, request in
+            $0[AttractionRepository.self].execute = { _ in
                 return []
             }
         } operation: {
@@ -47,7 +48,7 @@ struct AttractionsTests {
     @Test("Test TDS Attraction Route Returns OK")
     func tdsAttractionRoute() async throws {
         try await withDependencies {
-            $0[AttractionRepository.self].execute = { _, request in
+            $0[AttractionRepository.self].execute = { _ in
                 return []
             }
         } operation: {
@@ -74,7 +75,7 @@ struct AttractionsTests {
     @Test("Test Cache Is Used For Subsequent Calls")
     func cacheUsage() async throws {
         try await withDependencies {
-            $0[AttractionRepository.self].execute = { _, _ in
+            $0[AttractionRepository.self].execute = { _ in
                 return []
             }
         } operation: {
@@ -150,7 +151,7 @@ struct AttractionsTests {
     @Test("Test With Mocked Repository Returns Attractions")
     func mockedRepository() async throws {
         try await withDependencies {
-            $0[AttractionRepository.self].execute = { _, _ in
+            $0[AttractionRepository.self].execute = { _ in
                 return [
                     Attraction(
                         area: "テストエリア",
@@ -239,7 +240,7 @@ struct AttractionsTests {
     func apiClientErrorHandling() async throws {
         try await withDependencies {
             // リポジトリのモックを設定してエラーをスローするように
-            $0[AttractionRepository.self].execute = { _, _ in
+            $0[AttractionRepository.self].execute = { _ in
                 throw APIError.serverError(502)
             }
         } operation: {
@@ -344,20 +345,22 @@ struct AttractionsTests {
     // MARK: CacheStore
     @Test("Test CacheStore Get and Set")
     func cacheStore() async throws {
-        let cacheStore = VaporCacheStore()
-        
         try await withApp { app in
-            let request = Request(application: app, method: .GET, url: "/test", on: app.eventLoopGroup.next())
-            
-            // キャッシュに保存
-            let testData = ["test": "data"]
-            try await cacheStore.set("test_key", to: testData, expiresIn: .seconds(10), request: request)
-            
-            // キャッシュから取得
-            let cachedData = try await cacheStore.get("test_key", as: [String: String].self, request: request)
-            
-            #expect(cachedData != nil)
-            #expect(cachedData?["test"] == "data")
+            try await withDependencies {
+                $0.request = Request(application: app, method: .GET, url: "/test", on: app.eventLoopGroup.next())
+            } operation: {
+                // キャッシュに保存
+                let cacheStore = VaporCacheStore()
+                let testData = ["test": "data"]
+                try await cacheStore.set("test_key", to: testData, expiresIn: .seconds(10))
+                
+                // キャッシュから取得
+                let cachedData = try await cacheStore.get("test_key", as: [String: String].self)
+                
+                #expect(cachedData != nil)
+                #expect(cachedData?["test"] == "data")
+                
+            }
         }
     }
     
@@ -384,7 +387,7 @@ struct AttractionsTests {
     @Test("Test HTMLParserError.invalidHTML throws correct error")
     func testInvalidHTMLError() async throws {
         try await withDependencies {
-            $0[AttractionRepository.self].execute = { _, _ in
+            $0[AttractionRepository.self].execute = { _ in
                 throw HTMLParserError.invalidHTML
             }
         } operation: {
@@ -405,7 +408,7 @@ struct AttractionsTests {
     @Test("Test HTMLParserError.noAttractionFound throws correct error")
     func testNoAttractionFoundError() async throws {
         try await withDependencies {
-            $0[AttractionRepository.self].execute = { _, _ in
+            $0[AttractionRepository.self].execute = { _ in
                 throw HTMLParserError.noAttractionFound
             }
         } operation: {
@@ -426,7 +429,7 @@ struct AttractionsTests {
     @Test("Test API Decode Failure Error Handling")
     func testDecodingFailedError() async throws {
         try await withDependencies {
-            $0[AttractionRepository.self].execute = { _, _ in
+            $0[AttractionRepository.self].execute = { _ in
                 throw APIError.decodingFailed
             }
         } operation: {
@@ -449,7 +452,7 @@ struct AttractionsTests {
     @Test("Test Server Error Handling")
     func testServerError() async throws {
         try await withDependencies {
-            $0[AttractionRepository.self].execute = { _, _ in
+            $0[AttractionRepository.self].execute = { _ in
                 throw APIError.serverError(500)
             }
         } operation: {
@@ -472,7 +475,7 @@ struct AttractionsTests {
     @Test("Test Invalid Response Error")
     func testInvalidResponseError() async throws {
         try await withDependencies {
-            $0[AttractionRepository.self].execute = { _, _ in
+            $0[AttractionRepository.self].execute = { _ in
                 throw APIError.invalidResponse
             }
         } operation: {
@@ -488,7 +491,7 @@ struct AttractionsTests {
     func testHTMLParserDetailedErrors() async throws {
         // parseErrorのテスト
         try await withDependencies {
-            $0[AttractionRepository.self].execute = { _, _ in
+            $0[AttractionRepository.self].execute = { _ in
                 throw HTMLParserError.parseError
             }
         } operation: {
