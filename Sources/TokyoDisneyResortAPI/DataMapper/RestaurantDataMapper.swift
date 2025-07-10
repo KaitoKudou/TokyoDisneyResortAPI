@@ -18,7 +18,7 @@ struct RestaurantDataMapper {
         basicInfoList: [Restaurant],
         operatingStatusList: [Restaurant]
     ) -> [Restaurant] {
-        var attractions = [Restaurant]()
+        var restaurants = [Restaurant]()
         
         for basicInfo in basicInfoList {
             // 名前がマッチする運営状況を検索
@@ -26,7 +26,7 @@ struct RestaurantDataMapper {
             
             // 運営状況があれば統合した Restaurant 構造体を作成
             if let status = matchingStatus {
-                let attraction = Restaurant(
+                let restaurant = Restaurant(
                     area: basicInfo.area,
                     name: basicInfo.name,
                     iconTags: basicInfo.iconTags,
@@ -42,14 +42,14 @@ struct RestaurantDataMapper {
                     updateTime: status.updateTime,
                     popCornFlavor: status.popCornFlavor
                 )
-                attractions.append(attraction)
+                restaurants.append(restaurant)
             } else {
                 // 運営状況がなければ基本情報のみの Restaurant を追加
-                attractions.append(basicInfo)
+                restaurants.append(basicInfo)
             }
         }
         
-        return attractions
+        return restaurants
     }
     
     /// 基本情報に対応する運営状況を検索
