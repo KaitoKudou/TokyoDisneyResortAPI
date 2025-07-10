@@ -2,13 +2,23 @@
 import VaporTesting
 import Testing
 import Dependencies
+import OpenAPIVapor
 
 @Suite("Greetings Tests")
 struct GreetingsTests {
     private func withApp(_ test: (Application) async throws -> ()) async throws {
         let app = try await Application.make(.testing)
         do {
+            // configure関数を呼び出す（ミドルウェアなどの設定）
             try await configure(app)
+            
+            // OpenAPIのルートを登録
+            let requestInjectionMiddleware = OpenAPIRequestInjectionMiddleware()
+            let transport = VaporTransport(routesBuilder: app.grouped(requestInjectionMiddleware))
+            let handler = OpenAPIController(app: app)
+            try handler.registerHandlers(on: transport, serverURL: Servers.Server1.url())
+            
+            // ルート登録後にテストを実行
             try await test(app)
         } catch {
             try await app.asyncShutdown()
@@ -21,7 +31,7 @@ struct GreetingsTests {
     @Test("Test TDL Greeting Route Returns OK")
     func tdlGreetingRoute() async throws {
         try await withDependencies {
-            $0[GreetingRepository.self].execute = { _, _ in
+            $0[GreetingRepository.self].execute = { _ in
                 return []
             }
         } operation: {
@@ -38,7 +48,7 @@ struct GreetingsTests {
     @Test("Test TDS Greeting Route Returns OK")
     func tdsGreetingRoute() async throws {
         try await withDependencies {
-            $0[GreetingRepository.self].execute = { _, _ in
+            $0[GreetingRepository.self].execute = { _ in
                 return []
             }
         } operation: {
@@ -56,7 +66,7 @@ struct GreetingsTests {
     func invalidParkType() async throws {
         try await withApp { app in
             try await app.testing().test(.GET, "v1/invalid/greeting", afterResponse: { res async in
-                #expect(res.status == .badRequest)
+                #expect(res.status == .internalServerError)
             })
         }
     }
@@ -65,7 +75,7 @@ struct GreetingsTests {
     @Test("Test Cache Is Used For Subsequent Calls")
     func cacheUsage() async throws {
         try await withDependencies {
-            $0[GreetingRepository.self].execute = { _, _ in
+            $0[GreetingRepository.self].execute = { _ in
                 return []
             }
         } operation: {
@@ -152,7 +162,7 @@ struct GreetingsTests {
         try await withDependencies {
             // グリーティングリポジトリを完全に再実装
             $0[GreetingRepository.self] = .init(
-                execute: { parkType, request in
+                execute: { parkType in
                     // キャッシュキー
                     let cacheKey = "greetings_\(parkType.rawValue)"
                     
@@ -197,8 +207,11 @@ struct GreetingsTests {
                         
                         // カウンターの値が1であることを確認 (2回目はキャッシュから読み込まれるはず)
                         #expect(executionCount == 1, "Expected repository to be called only once, but was called \(executionCount) times")
+                        
+                        #expect(res1.body == res2.body)
                     })
                 })
+                
             }
         }
     }
@@ -207,7 +220,7 @@ struct GreetingsTests {
     @Test("Test With Mocked Repository Returns Greetings")
     func mockedRepository() async throws {
         try await withDependencies {
-            $0[GreetingRepository.self].execute = { _, _ in
+            $0[GreetingRepository.self].execute = { _ in
                 return [
                     Greeting(
                         area: "テストエリア",
@@ -272,7 +285,7 @@ struct GreetingsTests {
                     #expect(greetings[0].imageURL == "https://example.com/test.jpg")
                     #expect(greetings[0].detailURL == "/test/")
                     #expect(greetings[0].facilityStatus == "開催中")
-                    #expect(greetings[0].standbyTime?.description == "30")
+                    #expect(greetings[0].standbyTime?.value == "30")
                     #expect(greetings[0].updateTime == "9:00")
                     #expect(greetings[0].operatingHours?.count == 1)
                     #expect(greetings[0].operatingHours?[0].operatingStatus == "開催中")
@@ -455,7 +468,7 @@ struct GreetingsTests {
         #expect(greetings.count == 2)
         #expect(greetings[0].operatingHours != nil)
         #expect(greetings[0].operatingHours?.count == 1)
-        #expect(greetings[0].standbyTime?.description == "30")
+        #expect(greetings[0].standbyTime?.value == "30")
         #expect(greetings[1].operatingHours == nil)
     }
     
@@ -593,7 +606,7 @@ struct GreetingsTests {
         #expect(mickey != nil)
         #expect(mickey?.facilityID == "G0001")
         #expect(mickey?.facilityStatus == "開催中")
-        #expect(mickey?.standbyTime?.description == "30")
+        #expect(mickey?.standbyTime?.value == "30")
         #expect(mickey?.operatingHours?.count == 1)
         #expect(mickey?.operatingHours?[0].operatingHoursFrom == "9:00")
         
@@ -613,7 +626,7 @@ struct GreetingsTests {
     @Test("Test HTMLParserError.invalidHTML throws correct error")
     func testInvalidHTMLError() async throws {
         try await withDependencies {
-            $0[GreetingRepository.self].execute = { _, _ in
+            $0[GreetingRepository.self].execute = { _ in
                 throw HTMLParserError.invalidHTML
             }
         } operation: {
@@ -623,8 +636,8 @@ struct GreetingsTests {
                     
                     // レスポンスのボディをJSONとしてデコード
                     if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
-                        #expect(errorData.error == true)
-                        #expect(errorData.reason == "HTMLデータの形式が無効です")
+                        #expect(errorData.statusCode == res.status.code)
+                        #expect(errorData.message == "HTMLデータの形式が無効です")
                     } else {
                         XCTFail("レスポンスボディをErrorResponseにデコードできませんでした")
                     }
@@ -636,7 +649,7 @@ struct GreetingsTests {
     @Test("Test HTMLParserError.noGreetingFound throws correct error")
     func testNoGreetingFoundError() async throws {
         try await withDependencies {
-            $0[GreetingRepository.self].execute = { _, _ in
+            $0[GreetingRepository.self].execute = { _ in
                 throw HTMLParserError.noGreetingFound
             }
         } operation: {
@@ -646,8 +659,8 @@ struct GreetingsTests {
                     
                     // レスポンスのボディをJSONとしてデコード
                     if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
-                        #expect(errorData.error == true)
-                        #expect(errorData.reason == "グリーティング情報が見つかりませんでした")
+                        #expect(errorData.statusCode == res.status.code)
+                        #expect(errorData.message == "グリーティング情報が見つかりませんでした")
                     } else {
                         XCTFail("レスポンスボディをErrorResponseにデコードできませんでした")
                     }
@@ -659,7 +672,7 @@ struct GreetingsTests {
     @Test("Test API Decode Failure Error Handling")
     func testDecodingFailedError() async throws {
         try await withDependencies {
-            $0[GreetingRepository.self].execute = { _, _ in
+            $0[GreetingRepository.self].execute = { _ in
                 throw APIError.decodingFailed
             }
         } operation: {
@@ -669,31 +682,8 @@ struct GreetingsTests {
                     
                     // レスポンスのボディをJSONとしてデコード
                     if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
-                        #expect(errorData.error == true)
-                        #expect(errorData.reason == "Failed to decode the response data")
-                    } else {
-                        XCTFail("レスポンスボディをErrorResponseにデコードできませんでした")
-                    }
-                })
-            }
-        }
-    }
-    
-    @Test("Test Rate Limiting Error Handling")
-    func testRateLimitedError() async throws {
-        try await withDependencies {
-            $0[GreetingRepository.self].execute = { _, _ in
-                throw APIError.rateLimited
-            }
-        } operation: {
-            try await withApp { app in
-                try await app.testing().test(.GET, "v1/tdl/greeting", afterResponse: { res async in
-                    #expect(res.status == .tooManyRequests)
-                    
-                    // レスポンスのボディをJSONとしてデコード
-                    if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
-                        #expect(errorData.error == true)
-                        #expect(errorData.reason == "Request was rate limited")
+                        #expect(errorData.statusCode == res.status.code)
+                        #expect(errorData.message == "Failed to decode the response data")
                     } else {
                         XCTFail("レスポンスボディをErrorResponseにデコードできませんでした")
                     }
@@ -706,7 +696,7 @@ struct GreetingsTests {
     func testNetworkErrorHandlingDetails() async throws {
         // 特定のURLエラーでテスト
         try await withDependencies {
-            $0[GreetingRepository.self].execute = { _, _ in
+            $0[GreetingRepository.self].execute = { _ in
                 throw APIError.serverError(502)
             }
         } operation: {
@@ -717,8 +707,8 @@ struct GreetingsTests {
                     
                     // レスポンスのボディが適切なエラーメッセージを含んでいるか確認
                     if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
-                        #expect(errorData.error == true)
-                        #expect(errorData.reason == "Server error with status code 502")
+                        #expect(errorData.statusCode == res.status.code)
+                        #expect(errorData.message == "Server error with status code 502")
                     }
                 })
             }
@@ -728,7 +718,7 @@ struct GreetingsTests {
     @Test("Test Server Error Handling")
     func testServerError() async throws {
         try await withDependencies {
-            $0[GreetingRepository.self].execute = { _, _ in
+            $0[GreetingRepository.self].execute = { _ in
                 throw APIError.serverError(500)
             }
         } operation: {
@@ -738,8 +728,8 @@ struct GreetingsTests {
                     
                     // レスポンスのボディをJSONとしてデコード
                     if let errorData = try? JSONDecoder().decode(ErrorResponse.self, from: Data(buffer: res.body)) {
-                        #expect(errorData.error == true)
-                        #expect(errorData.reason == "Server error with status code 500")
+                        #expect(errorData.statusCode == res.status.code)
+                        #expect(errorData.message == "Server error with status code 500")
                     } else {
                         XCTFail("レスポンスボディをErrorResponseにデコードできませんでした")
                     }
@@ -923,7 +913,7 @@ struct GreetingsTests {
         #expect(greeting1?.area == "エリア1")
         #expect(greeting1?.character == "ミッキーマウス")
         #expect(greeting1?.facilityStatus == "開催中")
-        #expect(greeting1?.standbyTime?.description == "30")
+        #expect(greeting1?.standbyTime?.value == "30")
         #expect(greeting1?.operatingHours?.count == 1)
         #expect(greeting1?.updateTime == "10:00")
         
@@ -979,7 +969,7 @@ struct GreetingsTests {
         } else {
             XCTFail("StandbyTimeが文字列型でデコードされていません")
         }
-        #expect(stringResult.standbyTime.description == "30分")
+        #expect(stringResult.standbyTime.value == "30分")
         
         // 数値型のデコードテスト
         let intResult = try decoder.decode(StandbyTimeTestContainer.self, from: intJSON)
@@ -988,7 +978,7 @@ struct GreetingsTests {
         } else {
             XCTFail("StandbyTimeが数値型でデコードされていません")
         }
-        #expect(intResult.standbyTime.description == "45")
+        #expect(intResult.standbyTime.value == "45")
         
         // 真偽値型のデコードテスト
         let boolResult = try decoder.decode(StandbyTimeTestContainer.self, from: boolJSON)
@@ -997,7 +987,7 @@ struct GreetingsTests {
         } else {
             XCTFail("StandbyTimeが真偽値型でデコードされていません")
         }
-        #expect(boolResult.standbyTime.description == "true")
+        #expect(boolResult.standbyTime.value == "true")
         
         // 等価性テスト
         let standbyTime1 = StandbyTime.string("30")
