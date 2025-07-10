@@ -67,7 +67,7 @@ struct RestaurantDataMapper {
             guard let facilityID = $0.facilityID else {
                 return false
             }
-            guard ((basicInfo.detailURL?.contains(facilityID)) != nil) else {
+            guard let detailURL = basicInfo.detailURL, detailURL.contains(facilityID) else {
                 return false
             }
             return true
