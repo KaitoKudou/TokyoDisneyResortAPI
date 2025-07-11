@@ -2,101 +2,282 @@
 //  TokyoDisneyResortController.swift
 //  TokyoDisneyResortAPI
 //
-//  Created by 工藤 海斗 on 2025/05/05.
+//  Created by 工藤 海斗 on 2025/07/02.
 //
 
-import Foundation
+import OpenAPIRuntime
+import OpenAPIVapor
 import Vapor
+import Foundation
 import Dependencies
 
-struct TokyoDisneyResortController: RouteCollection {
+struct TokyoDisneyResortController: APIProtocol {
     @Dependency(AttractionRepository.self) private var attractionRepository
     @Dependency(GreetingRepository.self) private var greetingRepository
     @Dependency(RestaurantRepository.self) private var restaurantRepository
+    private let app: Application
     
-    func boot(routes: any RoutesBuilder) throws {
-        let myRoutes = routes.grouped("v1")
-        // ParkType をパスパラメータとして受け取る
-        //myRoutes.get(":parkType", "attraction", use: getAttractionStatus)
-        //myRoutes.get(":parkType", "greeting", use: getGreetingStatus)
-        myRoutes.get(":parkType", "restaurant", use: getRestaurantStatus)
+    init(app: Application) {
+        self.app = app
     }
     
-    /// ParkType に応じたアトラクション情報を返す
-    func getAttractionStatus(request: Request) async throws -> Response {
-        // URL から ParkType を取得
-        guard let parkTypeString = request.parameters.get("parkType"),
-              let parkType = ParkType(rawValue: parkTypeString) else {
-            throw Abort(.badRequest, reason: "Invalid park type. Use 'tdl' for Tokyo Disneyland or 'tds' for Tokyo DisneySea")
+    // MARK: アトラクション取得
+    func getAttractionStatus(_ input: Operations.getAttractionStatus.Input) async throws -> Operations.getAttractionStatus.Output {
+        let parkTypeString = input.path.parkType.rawValue
+        guard let parkType = ParkType(rawValue: parkTypeString) else {
+            // 不正なパークタイプの場合はBadRequestを返す
+            let errorResponse = Components.Schemas.ErrorResponse(
+                statusCode: 400,
+                message: "Invalid park type. Use 'tdl' for Tokyo Disneyland or 'tds' for Tokyo DisneySea"
+            )
+            return .badRequest(.init(body: .json(errorResponse)))
         }
         
         do {
             let attractions = try await attractionRepository.execute(parkType)
             
-            let response = Response(status: HTTPResponseStatus.ok)
-            response.headers.contentType = .json
-            try response.content.encode(attractions, as: .json)
+            let openAPIAttractions = attractions.map { attraction -> Components.Schemas.Attraction in
+                return Components.Schemas.Attraction(
+                    area: attraction.area,
+                    name: attraction.name,
+                    iconTags: attraction.iconTags,
+                    imageURL: attraction.imageURL,
+                    detailURL: attraction.detailURL,
+                    facilityID: attraction.facilityID,
+                    facilityStatus: attraction.facilityStatus,
+                    standbyTime: attraction.standbyTime?.value,
+                    operatingStatus: attraction.operatingStatus,
+                    dpaStatus: attraction.dpaStatus,
+                    fsStatus: attraction.fsStatus,
+                    updateTime: attraction.updateTime,
+                    operatingHoursFrom: attraction.operatingHoursFrom,
+                    operatingHoursTo: attraction.operatingHoursTo
+                )
+            }
             
-            return response
-        } catch let error as any AbortError {
-            // AbortErrorに準拠したエラーは、そのステータスコードとメッセージを使用
-            request.logger.error("Failed to get attraction data: \(error.reason)")
-            throw error
+            return .ok(.init(body: .json(openAPIAttractions)))
+        } catch let error as APIError {
+            let statusCode = Int32(error.status.code)
+            let errorResponse = Components.Schemas.ErrorResponse(
+                statusCode: statusCode,
+                message: error.description
+            )
+            
+            switch statusCode {
+            case 400:
+                return .badRequest(.init(body: .json(errorResponse)))
+            case 404:
+                return .notFound(.init(body: .json(errorResponse)))
+            case 422:
+                return .unprocessableContent(.init(body: .json(errorResponse)))
+            case 502:
+                return .badGateway(.init(body: .json(errorResponse)))
+            default:
+                return .internalServerError(.init(body: .json(errorResponse)))
+            }
+            
+        } catch let error as HTMLParserError {
+            let statusCode = Int32(error.status.code)
+            let errorResponse = Components.Schemas.ErrorResponse(
+                statusCode: statusCode,
+                message: error.description
+            )
+            
+            if statusCode == 422 {
+                return .unprocessableContent(.init(body: .json(errorResponse)))
+            } else if statusCode == 400 {
+                return .badRequest(.init(body: .json(errorResponse)))
+            } else if statusCode == 404 {
+                return .notFound(.init(body: .json(errorResponse)))
+            } else {
+                return .internalServerError(.init(body: .json(errorResponse)))
+            }
+            
         } catch {
-            // その他のエラーは内部サーバーエラーとしてラップ
-            request.logger.error("Failed to get attraction data: \(error.localizedDescription)")
-            throw Abort(.internalServerError, reason: "Failed to get attraction data: \(error.localizedDescription)")
+            let errorResponse = Components.Schemas.ErrorResponse(
+                statusCode: 500,
+                message: "サーバー内部エラーが発生しました"
+            )
+            return .internalServerError(.init(body: .json(errorResponse)))
         }
     }
     
-    /// ParkType に応じたグリーティング情報を返す
-    func getGreetingStatus(request: Request) async throws -> Response {
-        // URL から ParkType を取得
-        guard let parkTypeString = request.parameters.get("parkType"),
-              let parkType = ParkType(rawValue: parkTypeString) else {
-            throw Abort(.badRequest, reason: "Invalid park type. Use 'tdl' for Tokyo Disneyland or 'tds' for Tokyo DisneySea")
+    // MARK: グリーティング取得
+    func getGreetingStatus(_ input: Operations.getGreetingStatus.Input) async throws -> Operations.getGreetingStatus.Output {
+        let parkTypeString = input.path.parkType.rawValue
+        guard let parkType = ParkType(rawValue: parkTypeString) else {
+            // 不正なパークタイプの場合はBadRequestを返す
+            let errorResponse = Components.Schemas.ErrorResponse(
+                statusCode: 400,
+                message: "Invalid park type. Use 'tdl' for Tokyo Disneyland or 'tds' for Tokyo DisneySea"
+            )
+            return .badRequest(.init(body: .json(errorResponse)))
         }
         
         do {
             let greetings = try await greetingRepository.execute(parkType)
             
-            let response = Response(status: HTTPResponseStatus.ok)
-            response.headers.contentType = .json
-            try response.content.encode(greetings, as: .json)
+            let openAPIGreetings = greetings.map { greeting -> Components.Schemas.Greeting in
+                // operatingHoursの型変換
+                let convertedOperatingHours: Components.Schemas.Greeting.operatingHoursPayload? = greeting.operatingHours?.map {
+                    Components.Schemas.Greeting.operatingHoursPayloadPayload(
+                        operatingHoursFrom: $0.operatingHoursFrom,
+                        operatingHoursTo: $0.operatingHoursTo,
+                        operatingStatus: $0.operatingStatus
+                    )
+                }
+                
+                return Components.Schemas.Greeting(
+                    area: greeting.area,
+                    name: greeting.name,
+                    character: greeting.character,
+                    imageURL: greeting.imageURL,
+                    detailURL: greeting.detailURL,
+                    facilityID: greeting.facilityID,
+                    facilityName: greeting.facilityName,
+                    facilityStatus: greeting.facilityStatus,
+                    standbyTime: greeting.standbyTime?.value,
+                    operatingHours: convertedOperatingHours,
+                    useStandbyTimeStyle: greeting.useStandbyTimeStyle,
+                    updateTime: greeting.updateTime
+                )
+            }
             
-            return response
-        } catch let error as any AbortError {
-            // AbortErrorに準拠したエラーは、そのステータスコードとメッセージを使用
-            request.logger.error("Failed to get greeting data: \(error.reason)")
-            throw error
+            return .ok(.init(body: .json(openAPIGreetings)))
+        } catch let error as APIError {
+            let statusCode = Int32(error.status.code)
+            let errorResponse = Components.Schemas.ErrorResponse(
+                statusCode: statusCode,
+                message: error.description
+            )
+            
+            switch statusCode {
+            case 400:
+                return .badRequest(.init(body: .json(errorResponse)))
+            case 404:
+                return .notFound(.init(body: .json(errorResponse)))
+            case 422:
+                return .unprocessableContent(.init(body: .json(errorResponse)))
+            case 502:
+                return .badGateway(.init(body: .json(errorResponse)))
+            default:
+                return .internalServerError(.init(body: .json(errorResponse)))
+            }
+            
+        } catch let error as HTMLParserError {
+            let statusCode = Int32(error.status.code)
+            let errorResponse = Components.Schemas.ErrorResponse(
+                statusCode: statusCode,
+                message: error.description
+            )
+            
+            if statusCode == 422 {
+                return .unprocessableContent(.init(body: .json(errorResponse)))
+            } else if statusCode == 400 {
+                return .badRequest(.init(body: .json(errorResponse)))
+            } else if statusCode == 404 {
+                return .notFound(.init(body: .json(errorResponse)))
+            } else {
+                return .internalServerError(.init(body: .json(errorResponse)))
+            }
+            
         } catch {
-            // その他のエラーは内部サーバーエラーとしてラップ
-            request.logger.error("Failed to get greeting data: \(error.localizedDescription)")
-            throw Abort(.internalServerError, reason: "Failed to get greeting data: \(error.localizedDescription)")
+            let errorResponse = Components.Schemas.ErrorResponse(
+                statusCode: 500,
+                message: "サーバー内部エラーが発生しました"
+            )
+            return .internalServerError(.init(body: .json(errorResponse)))
         }
     }
     
-    /// ParkType に応じたレストラン情報を返す
-    func getRestaurantStatus(request: Request) async throws -> Response {
-        guard let parkTypeString = request.parameters.get("parkType"),
-              let parkType = ParkType(rawValue: parkTypeString) else {
-            throw Abort(.badRequest, reason: "Invalid park type. Use 'tdl' for Tokyo Disneyland or 'tds' for Tokyo DisneySea")
+    // MARK: レストラン取得
+    func getRestaurantStatus(_ input: Operations.getRestaurantStatus.Input) async throws -> Operations.getRestaurantStatus.Output {
+        let parkTypeString = input.path.parkType.rawValue
+        guard let parkType = ParkType(rawValue: parkTypeString) else {
+            // 不正なパークタイプの場合はBadRequestを返す
+            let errorResponse = Components.Schemas.ErrorResponse(
+                statusCode: 400,
+                message: "Invalid park type. Use 'tdl' for Tokyo Disneyland or 'tds' for Tokyo DisneySea"
+            )
+            return .badRequest(.init(body: .json(errorResponse)))
         }
         
         do {
             let restaurants = try await restaurantRepository.execute(parkType)
             
-            let response = Response(status: HTTPResponseStatus.ok)
-            response.headers.contentType = .json
-            try response.content.encode(restaurants, as: .json)
+            let openAPIRestaurants = restaurants.map { restaurant -> Components.Schemas.Restaurant in
+                // operatingHoursの型変換
+                let convertedOperatingHours: Components.Schemas.Restaurant.operatingHoursPayload? = restaurant.operatingHours?.map {
+                    Components.Schemas.Restaurant.operatingHoursPayloadPayload(
+                        operatingHoursFrom: $0.operatingHoursFrom,
+                        operatingHoursTo: $0.operatingHoursTo,
+                        operatingStatus: $0.operatingStatus
+                    )
+                }
+                
+                return Components.Schemas.Restaurant(
+                    area: restaurant.area,
+                    name: restaurant.name,
+                    iconTags: restaurant.iconTags,
+                    imageURL: restaurant.imageURL,
+                    detailURL: restaurant.detailURL,
+                    reservationURL: restaurant.reservationURL,
+                    facilityID: restaurant.facilityID,
+                    facilityName: restaurant.facilityName,
+                    facilityStatus: restaurant.facilityStatus,
+                    standbyTimeMin: restaurant.standbyTimeMin?.value,
+                    standbyTimeMax: restaurant.standbyTimeMax?.value,
+                    operatingHours: convertedOperatingHours,
+                    useStandbyTimeStyle: restaurant.useStandbyTimeStyle,
+                    updateTime: restaurant.updateTime,
+                    popCornFlavor: restaurant.popCornFlavor
+                )
+            }
             
-            return response
-        } catch let error as any AbortError {
-            request.logger.error("Failed to get restaurant data: \(error.reason)")
-            throw error
+            return .ok(.init(body: .json(openAPIRestaurants)))
+        } catch let error as APIError {
+            let statusCode = Int32(error.status.code)
+            let errorResponse = Components.Schemas.ErrorResponse(
+                statusCode: statusCode,
+                message: error.description
+            )
+            
+            switch statusCode {
+            case 400:
+                return .badRequest(.init(body: .json(errorResponse)))
+            case 404:
+                return .notFound(.init(body: .json(errorResponse)))
+            case 422:
+                return .unprocessableContent(.init(body: .json(errorResponse)))
+            case 502:
+                return .badGateway(.init(body: .json(errorResponse)))
+            default:
+                return .internalServerError(.init(body: .json(errorResponse)))
+            }
+            
+        } catch let error as HTMLParserError {
+            let statusCode = Int32(error.status.code)
+            let errorResponse = Components.Schemas.ErrorResponse(
+                statusCode: statusCode,
+                message: error.description
+            )
+            
+            if statusCode == 422 {
+                return .unprocessableContent(.init(body: .json(errorResponse)))
+            } else if statusCode == 400 {
+                return .badRequest(.init(body: .json(errorResponse)))
+            } else if statusCode == 404 {
+                return .notFound(.init(body: .json(errorResponse)))
+            } else {
+                return .internalServerError(.init(body: .json(errorResponse)))
+            }
+            
         } catch {
-            request.logger.error("Failed to get restaurant data: \(error.localizedDescription)")
-            throw Abort(.internalServerError, reason: "Failed to get restaurant data: \(error.localizedDescription)")
+            let errorResponse = Components.Schemas.ErrorResponse(
+                statusCode: 500,
+                message: "サーバー内部エラーが発生しました"
+            )
+            return .internalServerError(.init(body: .json(errorResponse)))
         }
     }
 }

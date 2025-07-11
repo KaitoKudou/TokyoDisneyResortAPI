@@ -57,7 +57,7 @@ struct RestaurantsTests {
             // OpenAPIのルートを登録
             let requestInjectionMiddleware = OpenAPIRequestInjectionMiddleware()
             let transport = VaporTransport(routesBuilder: app.grouped(requestInjectionMiddleware))
-            let handler = OpenAPIController(app: app)
+            let handler = TokyoDisneyResortController(app: app)
             try handler.registerHandlers(on: transport, serverURL: Servers.Server1.url())
             
             // ルート登録後にテストを実行
