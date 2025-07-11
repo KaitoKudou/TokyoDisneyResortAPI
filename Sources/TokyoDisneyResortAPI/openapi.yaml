@@ -100,6 +100,52 @@ paths:
               example:
                 statusCode: 502
                 message: "外部サービスとの通信に失敗しました"
+  /{parkType}/restaurant:
+    get:
+      operationId: getRestaurantStatus
+      parameters:
+      - name: parkType
+        required: true
+        in: path
+        description: 東京ディズニーランド/東京ディズニーシーのレストラン運営情報を返す
+        schema:
+          type: string
+          enum: ['tdl', 'tds']
+      responses:
+        '200':
+          description: レストラン運営情報取得に成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Restaurant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: レストラン運営情報が見つかりません
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                statusCode: 404
+                message: "レストラン情報が見つかりませんでした"
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+        '502':
+          description: ゲートウェイエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                statusCode: 502
+                message: "外部サービスとの通信に失敗しました"
 components:
   schemas:
     Attraction:
@@ -238,6 +284,90 @@ components:
           type: string
           description: 最終更新時間
           example: "14:30"
+    Restaurant:
+      type: object
+      required:
+        - area
+        - name
+        - iconTags
+      properties:
+        area:
+          type: string
+          description: エリア名
+          example: "ワールドバザール"
+        name:
+          type: string
+          description: レストラン名
+          example: "イーストサイド・カフェ"
+        iconTags:
+          type: array
+          description: タグのリスト
+          items:
+            type: string
+          example: ["テーブルサービスレストラン", "スイーツ"]
+        imageURL:
+          type: string
+          format: uri
+          description: サムネイルURL
+          example: "https://media1.tokyodisneyresort.jp/images/adventure/restaurant/157_thum_name.jpg"
+        detailURL:
+          type: string
+          description: 詳細ページのURL
+          example: "/tdl/restaurant/detail/157/"
+        reservationURL:
+          type: string
+          description: 予約ページのURL
+          example: "/tdl/restaurant/book/157/"
+        facilityID:
+          type: string
+          description: 施設ID
+          example: "157"
+        facilityName:
+          type: string
+          description: 施設名
+          example: "イーストサイド・カフェ"
+        facilityStatus:
+          type: string
+          description: 施設の運営状況
+          example: "営業中"
+        standbyTimeMin:
+          type: string
+          description: レストランの待ち時間（最小）
+          example: "15"
+        standbyTimeMax:
+          type: string
+          description: レストランの待ち時間（最大）
+          example: "30"
+        operatingHours:
+          type: array
+          description: 運営時間情報
+          items:
+            type: object
+            properties:
+              operatingHoursFrom:
+                type: string
+                description: 営業開始時間
+                example: "08:30"
+              operatingHoursTo:
+                type: string
+                description: 営業終了時間
+                example: "22:00"
+              operatingStatus:
+                type: string
+                description: 運営状況
+                example: "営業中"
+        useStandbyTimeStyle:
+          type: boolean
+          description: 待ち時間スタイルを使用するか
+          example: true
+        updateTime:
+          type: string
+          description: 最終更新時間
+          example: "14:30"
+        popCornFlavor:
+          type: string
+          description: ポップコーンのフレーバー（ポップコーンワゴンの場合）
+          example: "キャラメル"
     ErrorResponse:
       type: object
       required:
