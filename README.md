@@ -1,6 +1,6 @@
 # TokyoDisneyResortAPI
 
-💧 東京ディズニーリゾートのアトラクションとグリーティング情報を提供するAPIサーバー、Vapor Webフレームワークで構築されています。
+💧 東京ディズニーリゾートのアトラクション、グリーティング、レストラン情報を提供するAPIサーバー、Vapor Webフレームワークとクリーンアーキテクチャで構築されています。
 
 ## 概要
 
@@ -8,15 +8,17 @@
 
 - アトラクション情報（待ち時間、運営状況、運営時間など）
 - グリーティング情報（キャラクター、開催場所、待ち時間、開催時間など）
-- レストラン情報（エリア、営業時間、予約URL、アイコンタグなど）
+- レストラン情報（エリア、営業時間、予約URL、ポップコーンフレーバー、アイコンタグなど）
 
 ## 主なエンドポイント
 
-- `GET /tokyo_disney_resort/:parkType/attraction` - TDL/TDSのアトラクション情報を取得
-- `GET /tokyo_disney_resort/:parkType/greeting` - TDL/TDSのグリーティング情報を取得
-- `GET /tokyo_disney_resort/:parkType/restaurant` - TDL/TDSのレストラン情報を取得
+- `GET /v1/{parkType}/attraction` - TDL/TDSのアトラクション情報を取得
+- `GET /v1/{parkType}/greeting` - TDL/TDSのグリーティング情報を取得
+- `GET /v1/{parkType}/restaurant` - TDL/TDSのレストラン情報を取得
 
-`:parkType`には`tdl`（東京ディズニーランド）または`tds`（東京ディズニーシー）を指定します。
+`{parkType}`には`tdl`（東京ディズニーランド）または`tds`（東京ディズニーシー）を指定します。
+
+各エンドポイントはOpenAPI仕様に準拠しており、`/Public/openapi.html`でインタラクティブなドキュメントが利用可能です。また、OpenAPIの詳細な仕様は`/Public/openapi.yaml`で確認できます。
 
 ## レスポンス例
 
@@ -85,11 +87,41 @@
         "iconTags": [],
         "useStandbyTimeStyle": false,
         "updateTime": "19:30"
+    },
+    {
+        "area": "ワールドバザール",
+        "name": "ポップコーンワゴン",
+        "popCornFlavor": "キャラメル",
+        "iconTags": [],
+        "imageURL": "https://media1.tokyodisneyresort.jp/images/adventure/restaurant/101_thum_name.jpg?mod=20240101120000",
+        "detailURL": "/tdl/restaurant/detail/101/",
+        "facilityID": "101",
+        "operatingHours": [
+            {
+                "operatingHoursFrom": "9:00",
+                "operatingHoursTo": "22:00",
+                "operatingStatus": "営業中"
+            }
+        ],
+        "updateTime": "11:45"
     }
 ]
 ```
 
 各エンドポイントは最新データを提供し、キャッシュメカニズムにより高速なレスポンスを実現しています。
+
+### 特記事項
+
+**レストラン情報のポップコーンフレーバー**
+
+ポップコーンワゴンの場合、`popCornFlavor`フィールドにポップコーンのフレーバー情報が含まれます。例：「キャラメル」、「しょうゆバター」など。
+
+## OpenAPI仕様
+
+このAPIサーバーはOpenAPI 3.1.0仕様に準拠しています。詳細な仕様は以下の場所で確認できます：
+
+- `/Public/openapi.yaml` - OpenAPI仕様書（YAML形式）
+- `/Public/openapi.html` - インタラクティブなOpenAPIドキュメント（SwaggerUI）
 
 ## アーキテクチャ
 
@@ -133,11 +165,12 @@ API層は以下の主要コンポーネントで構成されています：
 
 - `Attraction` - アトラクション情報のデータモデル
 - `Greeting` - グリーティング情報のデータモデル
-- `Restaurant` - レストラン情報のデータモデル
+- `Restaurant` - レストラン情報のデータモデル（ポップコーンフレーバーを含む）
 
 ### コントローラ層
 
 - `TokyoDisneyResortController` - HTTPリクエストを処理し、リポジトリからのデータをJSONレスポンスに変換
+- `OpenAPIController` - OpenAPI仕様に準拠したエンドポイント処理を担当
 
 ### データストア
 
