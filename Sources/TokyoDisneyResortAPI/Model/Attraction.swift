@@ -120,7 +120,7 @@ struct Attraction: Codable {
         case facilityStatus = "FacilityStatus"
         case standbyTime = "StandbyTime"
         case operatingStatus = "OperatingStatus"
-        case dpaStatus = "DpaStatus"
+        case dpaStatus = "DPAStatus"
         case fsStatus = "FsStatus"
         case updateTime = "UpdateTime"
         case operatingHoursFrom = "OperatingHoursFrom"

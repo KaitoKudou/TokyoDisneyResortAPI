@@ -104,7 +104,7 @@ struct AttractionsTests {
                             case "facilityStatus": return CustomCodingKey(stringValue: "FacilityStatus")!
                             case "standbyTime": return CustomCodingKey(stringValue: "StandbyTime")!
                             case "operatingStatus": return CustomCodingKey(stringValue: "OperatingStatus")!
-                            case "dpaStatus": return CustomCodingKey(stringValue: "DpaStatus")!
+                            case "dpaStatus": return CustomCodingKey(stringValue: "DPAStatus")!
                             case "fsStatus": return CustomCodingKey(stringValue: "FsStatus")!
                             case "updateTime": return CustomCodingKey(stringValue: "UpdateTime")!
                             case "operatingHoursFrom": return CustomCodingKey(stringValue: "OperatingHoursFrom")!
@@ -200,7 +200,7 @@ struct AttractionsTests {
                         case "operatingStatus":
                             return CustomCodingKey(stringValue: "OperatingStatus")!
                         case "dpaStatus":
-                            return CustomCodingKey(stringValue: "DpaStatus")!
+                            return CustomCodingKey(stringValue: "DPAStatus")!
                         case "fsStatus":
                             return CustomCodingKey(stringValue: "FsStatus")!
                         case "updateTime":
